@@ -36,6 +36,61 @@ const TaskContext = createContext<TaskContextType>({
 
 export const useTask = () => useContext(TaskContext);
 
+// Mock data
+const mockTasks: Task[] = [
+  {
+    id: '1',
+    name: 'Project Planning',
+    description: 'Define project scope and requirements',
+    phase: 'Planning',
+    objective: 'Establish clear project goals and deliverables',
+    expectedOutcomes: ['Project charter', 'Requirements document', 'Timeline']
+  },
+  {
+    id: '2',
+    name: 'Design System',
+    description: 'Create comprehensive design system',
+    phase: 'Design',
+    objective: 'Build consistent UI components and guidelines',
+    expectedOutcomes: ['Component library', 'Style guide', 'Design tokens']
+  },
+  {
+    id: '3',
+    name: 'Frontend Development',
+    description: 'Implement user interface components',
+    phase: 'Development',
+    objective: 'Build responsive and interactive frontend',
+    expectedOutcomes: ['React components', 'Responsive layouts', 'User interactions']
+  }
+];
+
+const mockTeamMembers: TeamMember[] = [
+  {
+    id: '1',
+    name: 'Alice Johnson',
+    role: 'Project Manager',
+    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '2',
+    name: 'Bob Smith',
+    role: 'UI/UX Designer',
+    avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '3',
+    name: 'Carol Davis',
+    role: 'Frontend Developer',
+    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '4',
+    name: 'David Wilson',
+    role: 'Backend Developer',
+    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  }
+];
+
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -51,11 +106,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3000/api/tasks");
-      const data = await response.json();
-      setTasks(data.tasks);
-      if (data.tasks.length > 0) {
-        setSelectedTask(data.tasks[0]);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setTasks(mockTasks);
+      if (mockTasks.length > 0) {
+        setSelectedTask(mockTasks[0]);
       }
       setError(null);
     } catch (error) {
@@ -68,9 +124,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchTeamMembers = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/tasks/team-members");
-      const data = await response.json();
-      setTeamMembers(data.teamMembers);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      setTeamMembers(mockTeamMembers);
     } catch (error) {
       console.error("Error fetching team members:", error);
     }
