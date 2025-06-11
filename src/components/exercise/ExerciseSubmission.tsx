@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, Target, Clock, User, Award } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useTask } from '../../context/TaskContext';
 import ValidationResult from './ValidationResult';
@@ -15,7 +15,20 @@ const ExerciseSubmission: React.FC = () => {
     validationResult
   } = useChat();
   
-  const { selectedTask } = useTask();
+  const { selectedTask, selectedSubtask } = useTask();
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty?.toLowerCase()) {
+      case 'beginner':
+        return 'bg-green-100 text-green-700';
+      case 'intermediate':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'advanced':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-slate-100 text-slate-700';
+    }
+  };
 
   return (
     <motion.div 
@@ -32,38 +45,98 @@ const ExerciseSubmission: React.FC = () => {
         <p className="text-purple-100 text-sm mt-1">Submit your work</p>
       </div>
 
-      {selectedTask && (
+      {selectedTask && selectedSubtask && (
         <motion.div 
           className="p-4 bg-slate-50 border-b border-slate-200"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
         >
-          <h3 className="font-semibold text-slate-800 mb-2">
-            {selectedTask.name}
-          </h3>
-          <p className="text-sm text-slate-600 mb-3">
-            {selectedTask.objective}
-          </p>
+          <div className="mb-3">
+            <h3 className="font-semibold text-slate-800 mb-1">
+              {selectedTask.name}
+            </h3>
+            <p className="text-xs text-slate-600 mb-2">
+              {selectedTask.phase}
+            </p>
+          </div>
 
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-              Expected Outcomes:
-            </h4>
-            <ul className="text-xs text-slate-600 space-y-1">
-              {selectedTask.expectedOutcomes?.map((outcome, index) => (
-                <motion.li 
-                  key={index} 
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.2, delay: 0.5 + (index * 0.1) }}
-                >
-                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                  {outcome}
-                </motion.li>
-              ))}
-            </ul>
+          <div className="bg-white rounded-lg p-3 border border-slate-200">
+            <div className="flex items-start justify-between mb-2">
+              <h4 className="font-medium text-slate-800 text-sm">
+                {selectedSubtask.name}
+              </h4>
+              <span className={`px-2 py-1 text-xs rounded-full ${getDifficultyColor(selectedSubtask.difficulty)}`}>
+                {selectedSubtask.difficulty}
+              </span>
+            </div>
+            
+            <p className="text-xs text-slate-600 mb-3">
+              {selectedSubtask.description}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+              <div className="flex items-center text-slate-500">
+                <Clock size={10} className="mr-1" />
+                {selectedSubtask.estimatedTime}
+              </div>
+              <div className="flex items-center text-slate-500">
+                <User size={10} className="mr-1" />
+                {selectedSubtask.primaryAgent}
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <div className="flex items-center mb-1">
+                <Target size={12} className="mr-1 text-blue-500" />
+                <span className="text-xs font-semibold text-slate-700">Objective:</span>
+              </div>
+              <p className="text-xs text-slate-600 ml-4">
+                {selectedSubtask.objective}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div>
+                <h5 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">
+                  Expected Outcomes:
+                </h5>
+                <ul className="text-xs text-slate-600 space-y-1">
+                  {selectedSubtask.expectedOutcomes?.map((outcome, index) => (
+                    <motion.li 
+                      key={index} 
+                      className="flex items-start"
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: 0.5 + (index * 0.1) }}
+                    >
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                      {outcome}
+                    </motion.li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">
+                  Deliverables:
+                </h5>
+                <ul className="text-xs text-slate-600 space-y-1">
+                  {selectedSubtask.deliverables?.map((deliverable, index) => (
+                    <motion.li 
+                      key={index} 
+                      className="flex items-start"
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: 0.6 + (index * 0.1) }}
+                    >
+                      <Award size={10} className="mt-1 mr-2 flex-shrink-0 text-purple-500" />
+                      {deliverable}
+                    </motion.li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </motion.div>
       )}
@@ -74,12 +147,12 @@ const ExerciseSubmission: React.FC = () => {
           onChange={(e) => setSubmission(e.target.value)}
           onKeyPress={(e) => handleKeyPress(e, true)}
           placeholder={
-            selectedTask
+            selectedSubtask
               ? "Write your solution here..."
-              : "Select a task to begin"
+              : "Select a subtask to begin"
           }
           className="flex-1 p-4 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-          disabled={!selectedTask}
+          disabled={!selectedSubtask}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.5 }}
@@ -87,7 +160,7 @@ const ExerciseSubmission: React.FC = () => {
 
         <motion.button
           onClick={validateSubmission}
-          disabled={!submission.trim() || !selectedTask || isValidating}
+          disabled={!submission.trim() || !selectedSubtask || isValidating}
           className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
