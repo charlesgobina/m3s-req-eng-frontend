@@ -53,164 +53,6 @@ const TaskContext = createContext<TaskContextType>({
 
 export const useTask = () => useContext(TaskContext);
 
-// Mock data with the new structure
-const mockTasks: Task[] = [
-  {
-    id: "stakeholder_identification_analysis",
-    name: "Stakeholder Identification & Analysis",
-    description: "Identify and analyze all stakeholders who will be affected by or can influence the Campus Smart Dining system",
-    phase: "Requirements Discovery",
-    objective: "Master stakeholder identification and analysis techniques",
-    subtasks: [
-      {
-        id: "stakeholder_identification",
-        name: "Stakeholder Identification",
-        description: "Identify all individuals and groups who will be affected by or can influence the system",
-        objective: "Learn to systematically identify primary, secondary, and key stakeholders",
-        expectedOutcomes: [
-          "Comprehensive stakeholder list",
-          "Stakeholder categorization (primary/secondary/key)",
-          "Initial influence-interest matrix"
-        ],
-        validationCriteria: [
-          "Identifies at least 8 different stakeholder types",
-          "Covers both direct and indirect stakeholders",
-          "Includes technical and business stakeholders",
-          "Considers external stakeholders (parents, vendors)"
-        ],
-        deliverables: ["Stakeholder register", "Stakeholder map"],
-        estimatedTime: "2-3 hours",
-        difficulty: "Beginner",
-        primaryAgent: "Stakeholder Analyst"
-      },
-      {
-        id: "stakeholder_analysis",
-        name: "Stakeholder Analysis & Prioritization",
-        description: "Analyze stakeholder characteristics, needs, influence levels, and potential conflicts",
-        objective: "Understand stakeholder power dynamics and prioritize engagement strategies",
-        expectedOutcomes: [
-          "Detailed stakeholder profiles",
-          "Power-interest grid",
-          "Engagement strategy matrix",
-          "Conflict identification"
-        ],
-        validationCriteria: [
-          "Accurately assesses stakeholder influence levels",
-          "Identifies potential conflicts between stakeholders",
-          "Proposes appropriate engagement strategies",
-          "Considers stakeholder availability and expertise"
-        ],
-        deliverables: ["Stakeholder analysis report", "Engagement plan"],
-        estimatedTime: "3-4 hours",
-        difficulty: "Intermediate",
-        primaryAgent: "Business Analyst"
-      },
-      {
-        id: "persona_development",
-        name: "User Persona Development",
-        description: "Create detailed user personas based on stakeholder analysis",
-        objective: "Learn to create representative user archetypes for requirements elicitation",
-        expectedOutcomes: [
-          "3-5 detailed user personas",
-          "User journey maps",
-          "Pain points and motivations",
-          "Usage scenarios"
-        ],
-        validationCriteria: [
-          "Personas are based on real stakeholder data",
-          "Covers diverse user types and needs",
-          "Includes relevant demographic and behavioral details",
-          "Clearly articulates user goals and frustrations"
-        ],
-        deliverables: ["User persona documents", "Journey maps"],
-        estimatedTime: "4-5 hours",
-        difficulty: "Intermediate",
-        primaryAgent: "UX Researcher"
-      }
-    ]
-  },
-  {
-    id: "requirements_elicitation",
-    name: "Requirements Elicitation",
-    description: "Gather detailed requirements from stakeholders using various elicitation techniques",
-    phase: "Requirements Discovery",
-    objective: "Master different requirements elicitation techniques and their appropriate usage",
-    subtasks: [
-      {
-        id: "interview_planning",
-        name: "Interview Planning & Execution",
-        description: "Plan and conduct structured interviews with key stakeholders",
-        objective: "Learn to design effective interview strategies and extract valuable requirements",
-        expectedOutcomes: [
-          "Interview guide templates",
-          "Stakeholder interview sessions",
-          "Raw requirements data",
-          "Interview summaries"
-        ],
-        validationCriteria: [
-          "Develops comprehensive interview guides",
-          "Conducts at least 3 different stakeholder interviews",
-          "Extracts both functional and non-functional requirements",
-          "Documents findings systematically"
-        ],
-        deliverables: ["Interview guides", "Interview transcripts", "Requirements log"],
-        estimatedTime: "4-6 hours",
-        difficulty: "Intermediate",
-        primaryAgent: "Business Analyst"
-      },
-      {
-        id: "workshop_facilitation",
-        name: "Requirements Workshop Facilitation",
-        description: "Design and facilitate collaborative requirements workshops",
-        objective: "Learn to facilitate group sessions for requirements discovery and validation",
-        expectedOutcomes: [
-          "Workshop agenda and materials",
-          "Facilitated group sessions",
-          "Consensus on key requirements",
-          "Workshop outcomes documentation"
-        ],
-        validationCriteria: [
-          "Creates structured workshop agenda",
-          "Facilitates productive group discussions",
-          "Manages conflicting stakeholder views",
-          "Achieves consensus on priority requirements"
-        ],
-        deliverables: ["Workshop plan", "Session notes", "Requirements consensus document"],
-        estimatedTime: "5-7 hours",
-        difficulty: "Advanced",
-        primaryAgent: "Requirements Engineer"
-      }
-    ]
-  }
-];
-
-const mockTeamMembers: TeamMember[] = [
-  {
-    id: '1',
-    name: 'Sarah Chen',
-    role: 'Stakeholder Analyst',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'Marcus Rodriguez',
-    role: 'Business Analyst',
-    avatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  },
-  {
-    id: '3',
-    name: 'Emily Watson',
-    role: 'UX Researcher',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  },
-  {
-    id: '4',
-    name: 'David Kim',
-    role: 'Requirements Engineer',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  }
-];
-
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -225,33 +67,33 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchTasks = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setTasks(mockTasks);
-      if (mockTasks.length > 0) {
-        setSelectedTask(mockTasks[0]);
-        if (mockTasks[0].subtasks.length > 0) {
-          setSelectedSubtask(mockTasks[0].subtasks[0]);
-        }
-      }
-      setError(null);
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-      setError("Failed to load tasks. Please try again later.");
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    const response = await fetch("http://localhost:3000/api/tasks");
+    const data = await response.json();
+    // Ensure every task has a subtasks array
+    const safeTasks = (data.tasks || []).map((task: any) => ({
+      ...task,
+      subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+    }));
+    setTasks(safeTasks);
+    if (safeTasks.length > 0) {
+      setSelectedTask(safeTasks[0]);
     }
-  };
+    setError(null);
+  } catch (error) {
+    console.error("Error fetching tasks:", error);
+    setError("Failed to load tasks. Please try again later.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const fetchTeamMembers = async () => {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      setTeamMembers(mockTeamMembers);
+      const response = await fetch("http://localhost:3000/api/tasks/team-members");
+      const data = await response.json();
+      setTeamMembers(data.teamMembers);
     } catch (error) {
       console.error("Error fetching team members:", error);
     }

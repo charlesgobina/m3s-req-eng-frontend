@@ -141,46 +141,48 @@ const ExerciseSubmission: React.FC = () => {
         </motion.div>
       )}
 
-      <div className="flex-1 flex flex-col p-4">
-        <motion.textarea
-          value={submission}
-          onChange={(e) => setSubmission(e.target.value)}
-          onKeyPress={(e) => handleKeyPress(e, true)}
-          placeholder={
-            selectedSubtask
-              ? "Write your solution here..."
-              : "Select a subtask to begin"
-          }
-          className="flex-1 p-4 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-          disabled={!selectedSubtask}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-        />
+      {selectedTask?.name?.toLowerCase() !== 'home' && (
+        <div className="flex-1 flex flex-col p-4">
+          <motion.textarea
+            value={submission}
+            onChange={(e) => setSubmission(e.target.value)}
+            onKeyPress={(e) => handleKeyPress(e, true)}
+            placeholder={
+              selectedSubtask
+                ? "Write your solution here..."
+                : "Select a subtask to begin"
+            }
+            className="flex-1 p-4 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            disabled={!selectedSubtask}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+          />
 
-        <motion.button
-          onClick={validateSubmission}
-          disabled={!submission.trim() || !selectedSubtask || isValidating}
-          className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm"
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.6 }}
-        >
-          {isValidating ? (
-            <>
-              <Loader2 size={18} className="animate-spin mr-2" />
-              Validating...
-            </>
-          ) : (
-            <>
-              <CheckCircle size={18} className="mr-2" />
-              Submit & Validate
-            </>
-          )}
-        </motion.button>
-      </div>
+          <motion.button
+            onClick={validateSubmission}
+            disabled={!submission.trim() || !selectedSubtask || isValidating}
+            className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.6 }}
+          >
+            {isValidating ? (
+              <>
+                <Loader2 size={18} className="animate-spin mr-2" />
+                Validating...
+              </>
+            ) : (
+              <>
+                <CheckCircle size={18} className="mr-2" />
+                Submit & Validate
+              </>
+            )}
+          </motion.button>
+        </div>
+      )}
 
       {validationResult && <ValidationResult />}
     </motion.div>

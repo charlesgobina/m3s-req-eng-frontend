@@ -92,7 +92,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !selectedSubtask || isStreaming) return;
+    if (!inputMessage.trim() || !selectedTask || !selectedSubtask || isStreaming) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -105,42 +105,136 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setInputMessage('');
     setIsStreaming(true);
 
-    // Mock response for now since there's no backend
-    setTimeout(() => {
-      const mockResponse: Message = {
+    try {
+      const response = await fetch('http://localhost:3000/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputMessage,
+          taskId: selectedTask.id,
+          subtask: selectedSubtask,
+          sessionId,
+          projectContext,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start chat stream');
+      }
+
+      const reader = response?.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `I understand you're working on "${selectedSubtask.name}". This is a ${selectedSubtask.difficulty.toLowerCase()} level task that should take about ${selectedSubtask.estimatedTime}. 
-
-The main objective is: ${selectedSubtask.objective}
-
-Let me help you with this. What specific aspect would you like guidance on?`,
+        content: '',
         timestamp: new Date(),
-        agentRole: selectedSubtask.primaryAgent,
+        agentRole: '',
       };
 
-      setMessages((prev) => [...prev, mockResponse]);
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'agent_selected') {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessage.id
+                      ? { ...msg, agentRole: data.agent }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'content') {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessage.id
+                      ? {
+                          ...msg,
+                          content: msg.content + data.content,
+                          agentRole: data.agent,
+                        }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'error') {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessage.id
+                      ? { ...msg, content: `Error: ${data.message}` }
+                      : msg
+                  )
+                );
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 2).toString(),
+          role: 'assistant',
+          content:
+            'Sorry, there was an error processing your message. Please try again.',
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
       setIsStreaming(false);
-    }, 1500);
+    }
   };
 
   const validateSubmission = async () => {
-    if (!submission.trim() || !selectedSubtask || isValidating) return;
+    if (!submission.trim() || !selectedTask || isValidating) return;
 
     setIsValidating(true);
-    
-    // Mock validation for now
-    setTimeout(() => {
-      const mockValidation: ValidationResult = {
-        score: Math.floor(Math.random() * 40) + 60, // Random score between 60-100
-        feedback: `Your submission for "${selectedSubtask.name}" shows good understanding of the core concepts. You've addressed most of the expected outcomes.`,
-        recommendations: `Consider expanding on the stakeholder analysis section and providing more specific examples. Review the validation criteria to ensure all points are covered.`,
-        passed: true,
-      };
+    try {
+      const response = await fetch(
+        'http://localhost:3000/api/validation/validate',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            submission,
+            taskId: selectedTask.id,
+            subtask: selectedSubtask,
+            sessionId,
+            projectContext,
+          }),
+        }
+      );
 
-      setValidationResult(mockValidation);
+      const result = await response.json();
+      setValidationResult(result);
+    } catch (error) {
+      console.error('Error validating submission:', error);
+      setValidationResult({
+        score: 0,
+        feedback: 'Error validating submission. Please try again.',
+        recommendations: '',
+        passed: false,
+      });
+    } finally {
       setIsValidating(false);
-    }, 2000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent, isSubmission = false) => {

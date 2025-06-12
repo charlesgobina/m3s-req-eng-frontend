@@ -26,6 +26,8 @@ const SubtaskItem: React.FC<{ subtask: Subtask; isSelected: boolean; onClick: ()
   isSelected, 
   onClick 
 }) => {
+
+  console.log('Rendering SubtaskItem:', subtask.name, 'Selected:', isSelected);
   return (
     <motion.div
       onClick={onClick}

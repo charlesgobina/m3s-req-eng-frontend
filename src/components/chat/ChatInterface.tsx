@@ -59,7 +59,7 @@ const ChatInterface: React.FC = () => {
               <div className="flex items-center">
                 <Loader2 size={16} className="animate-spin mr-2" />
                 <span className="text-slate-600">
-                  Team member is typing...
+                  {selectedSubtask?.primaryAgent || 'Agent'} is typing...
                 </span>
               </div>
             </div>
