@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Loader2, Target, Clock, User, Award } from 'lucide-react';
+import { CheckCircle, Loader2, Target, Clock, User, Award, ArrowRight } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useTask } from '../../context/TaskContext';
 import ValidationResult from './ValidationResult';
@@ -15,7 +15,7 @@ const ExerciseSubmission: React.FC = () => {
     validationResult
   } = useChat();
   
-  const { selectedTask, selectedSubtask } = useTask();
+  const { selectedTask, selectedSubtask, navigateToNext } = useTask();
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty?.toLowerCase()) {
@@ -28,6 +28,10 @@ const ExerciseSubmission: React.FC = () => {
       default:
         return 'bg-slate-100 text-slate-700';
     }
+  };
+
+  const handleNextClick = () => {
+    navigateToNext();
   };
 
   return (
@@ -159,28 +163,45 @@ const ExerciseSubmission: React.FC = () => {
             transition={{ duration: 0.3, delay: 0.5 }}
           />
 
-          <motion.button
-            onClick={validateSubmission}
-            disabled={!submission.trim() || !selectedSubtask || isValidating}
-            className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.6 }}
-          >
-            {isValidating ? (
-              <>
-                <Loader2 size={18} className="animate-spin mr-2" />
-                Validating...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={18} className="mr-2" />
-                Submit & Validate
-              </>
+          <div className="mt-4 space-y-3">
+            <motion.button
+              onClick={validateSubmission}
+              disabled={!submission.trim() || !selectedSubtask || isValidating}
+              className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.6 }}
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 size={18} className="animate-spin mr-2" />
+                  Validating...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={18} className="mr-2" />
+                  Submit & Validate
+                </>
+              )}
+            </motion.button>
+
+            {validationResult && validationResult.passed && (
+              <motion.button
+                onClick={handleNextClick}
+                className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center shadow-sm"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                Next Task
+                <ArrowRight size={18} className="ml-2" />
+              </motion.button>
             )}
-          </motion.button>
+          </div>
         </div>
       )}
 

@@ -36,6 +36,7 @@ interface TaskContextType {
   selectedSubtask: Subtask | null;
   setSelectedTask: (task: Task) => void;
   setSelectedSubtask: (subtask: Subtask) => void;
+  navigateToNext: () => void;
   isLoading: boolean;
   error: string | null;
 }
@@ -47,6 +48,7 @@ const TaskContext = createContext<TaskContextType>({
   selectedSubtask: null,
   setSelectedTask: () => {},
   setSelectedSubtask: () => {},
+  navigateToNext: () => {},
   isLoading: false,
   error: null,
 });
@@ -67,27 +69,27 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchTasks = async () => {
-  setIsLoading(true);
-  try {
-    const response = await fetch("http://localhost:3000/api/tasks");
-    const data = await response.json();
-    // Ensure every task has a subtasks array
-    const safeTasks = (data.tasks || []).map((task: any) => ({
-      ...task,
-      subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
-    }));
-    setTasks(safeTasks);
-    if (safeTasks.length > 0) {
-      setSelectedTask(safeTasks[0]);
+    setIsLoading(true);
+    try {
+      const response = await fetch("http://localhost:3000/api/tasks");
+      const data = await response.json();
+      // Ensure every task has a subtasks array
+      const safeTasks = (data.tasks || []).map((task: any) => ({
+        ...task,
+        subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+      }));
+      setTasks(safeTasks);
+      if (safeTasks.length > 0) {
+        setSelectedTask(safeTasks[0]);
+      }
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      setError("Failed to load tasks. Please try again later.");
+    } finally {
+      setIsLoading(false);
     }
-    setError(null);
-  } catch (error) {
-    console.error("Error fetching tasks:", error);
-    setError("Failed to load tasks. Please try again later.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const fetchTeamMembers = async () => {
     try {
@@ -108,6 +110,39 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const navigateToNext = () => {
+    if (!selectedTask) return;
+
+    // If we're on the home task, move to the first real task
+    if (selectedTask.name.toLowerCase() === 'home') {
+      const nextTask = tasks.find(task => task.name.toLowerCase() !== 'home');
+      if (nextTask) {
+        handleSetSelectedTask(nextTask);
+      }
+      return;
+    }
+
+    // If there's a current subtask, try to move to the next subtask
+    if (selectedSubtask && selectedTask.subtasks.length > 0) {
+      const currentSubtaskIndex = selectedTask.subtasks.findIndex(
+        subtask => subtask.id === selectedSubtask.id
+      );
+      
+      // If there's a next subtask in the current task
+      if (currentSubtaskIndex < selectedTask.subtasks.length - 1) {
+        setSelectedSubtask(selectedTask.subtasks[currentSubtaskIndex + 1]);
+        return;
+      }
+    }
+
+    // If no more subtasks, move to the next task
+    const currentTaskIndex = tasks.findIndex(task => task.id === selectedTask.id);
+    if (currentTaskIndex < tasks.length - 1) {
+      const nextTask = tasks[currentTaskIndex + 1];
+      handleSetSelectedTask(nextTask);
+    }
+  };
+
   return (
     <TaskContext.Provider
       value={{
@@ -117,6 +152,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         selectedSubtask,
         setSelectedTask: handleSetSelectedTask,
         setSelectedSubtask,
+        navigateToNext,
         isLoading,
         error,
       }}
