@@ -13,7 +13,7 @@ const TaskList: React.FC<TaskListProps> = ({ onTaskSelect }) => {
 
   return (
     <motion.div 
-      className="w-full lg:w-80 bg-white shadow-xl border-r border-slate-200 flex flex-col h-full"
+      className="bg-white shadow-xl border-r border-slate-200 flex flex-col h-full"
       initial={{ x: -50, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3, delay: 0.1 }}
@@ -26,7 +26,7 @@ const TaskList: React.FC<TaskListProps> = ({ onTaskSelect }) => {
         <p className="text-blue-100 text-sm mt-1">Requirements Engineering</p>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-3">
+      <div className="flex-1 bg-yellow-500 overflow-y-auto p-3 lg:p-4 space-y-3 lg:w-full">
         {isLoading ? (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>

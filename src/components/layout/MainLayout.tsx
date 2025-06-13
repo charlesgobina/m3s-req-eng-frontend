@@ -46,7 +46,7 @@ const MainLayout: React.FC = () => {
             onClick={toggleMobileMenu}
           >
             <motion.div
-              className="w-80 max-w-[85vw] h-full bg-white"
+              className="w-full max-w-[80vw] h-full bg-white"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
@@ -60,7 +60,7 @@ const MainLayout: React.FC = () => {
       </AnimatePresence>
 
       {/* Desktop Task List */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block w-1/4">
         <TaskList />
       </div>
 
@@ -76,7 +76,7 @@ const MainLayout: React.FC = () => {
             </div>
             
             {/* Exercise Submission - Hidden on mobile, shown in modal */}
-            <div className="hidden lg:block lg:w-1/4">
+            <div className="hidden lg:block lg:w-1/3 bg-red-500">
               <ExerciseSubmission />
             </div>
             
