@@ -14,12 +14,13 @@ const MobileExercisePanel = memo(({ isExpanded, setIsExpanded, children }: {
   <div className="lg:hidden">
     <motion.button
       onClick={() => setIsExpanded(!isExpanded)}
-      className="w-full p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between touch-manipulation"
+      className="max-w-md p-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between touch-manipulation rounded-2xl shadow-lg mb-2"
       whileTap={{ scale: 0.98 }}
+      style={{ boxShadow: '0 8px 32px rgba(80,0,120,0.18)' }}
     >
       <div className="flex items-center">
-        <CheckCircle className="mr-2" size={20} />
-        <span className="font-bold">Exercise</span>
+      <CheckCircle className="mr-2" size={20} />
+      <span className="font-bold">Exercise</span>
       </div>
       {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
     </motion.button>
