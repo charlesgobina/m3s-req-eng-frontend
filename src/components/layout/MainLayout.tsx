@@ -19,13 +19,13 @@ const MainLayout: React.FC = () => {
 
   return (
     <motion.div 
-      className="h-screen flex flex-col lg:flex-row relative"
+      className="h-svh flex flex-col lg:flex-row relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
       {/* Mobile Header */}
-      <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex items-center justify-between z-50">
+      <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1 flex items-center justify-between z-50">
         <h1 className="text-lg font-bold">
           {selectedSubtask?.name || 'Yliopisto'}
         </h1>
