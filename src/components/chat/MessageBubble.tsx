@@ -26,10 +26,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, index }) => {
       }}
     >
       <div
-        className={`max-w-3/4 p-4 rounded-2xl shadow-sm ${
+        className={`max-w-[85%] lg:max-w-3/4 p-3 lg:p-4 rounded-2xl shadow-sm ${
           isUser
-            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white ml-8'
-            : 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-800 mr-8'
+            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white ml-4 lg:ml-8'
+            : 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-800 mr-4 lg:mr-8'
         }`}
       >
         {!isUser && message.agentRole && (
@@ -39,16 +39,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, index }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: 0.1 }}
           >
-            <User size={12} className="mr-1" />
-            <span className="font-semibold text-slate-600">
+            <User size={12} className="mr-1 flex-shrink-0" />
+            <span className="font-semibold text-slate-600 truncate">
               {getTeamMemberInfo(message.agentRole)?.name || message.agentRole}
             </span>
-            <span className="ml-2 px-2 py-1 bg-slate-300 text-slate-700 rounded-full">
+            <span className="ml-2 px-2 py-1 bg-slate-300 text-slate-700 rounded-full text-xs flex-shrink-0">
               {message.agentRole}
             </span>
           </motion.div>
         )}
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        <p className="whitespace-pre-wrap text-sm lg:text-base break-words">{message.content}</p>
         <div className="text-xs opacity-70 mt-2">
           {message.timestamp.toLocaleTimeString()}
         </div>

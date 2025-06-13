@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ChevronDown, ChevronRight, User, Target, CheckCircle2 } from 'lucide-react';
+import { Clock, ChevronDown, ChevronRight, User, Target } from 'lucide-react';
 import { useTask, Task, Subtask } from '../../context/TaskContext';
 
 interface TaskCardProps {
   task: Task;
   index: number;
+  onSelect?: () => void;
 }
 
 const getDifficultyColor = (difficulty: string) => {
@@ -21,59 +22,61 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-const SubtaskItem: React.FC<{ subtask: Subtask; isSelected: boolean; onClick: () => void }> = ({ 
-  subtask, 
-  isSelected, 
-  onClick 
-}) => {
+const SubtaskItem: React.FC<{ 
+  subtask: Subtask; 
+  isSelected: boolean; 
+  onClick: () => void;
+  onSelect?: () => void;
+}> = ({ subtask, isSelected, onClick, onSelect }) => {
+  const handleClick = () => {
+    onClick();
+    onSelect?.();
+  };
 
-  console.log('Rendering SubtaskItem:', subtask.name, 'Selected:', isSelected);
   return (
     <motion.div
-      onClick={onClick}
-      className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border ${
+      onClick={handleClick}
+      className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border touch-manipulation ${
         isSelected
           ? 'border-blue-400 bg-blue-50 shadow-sm'
-          : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+          : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 active:bg-slate-100'
       }`}
       whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+      whileTap={{ scale: 0.98 }}
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="font-medium text-slate-800 text-sm leading-tight">
+        <h4 className="font-medium text-slate-800 text-sm leading-tight pr-2">
           {subtask.name}
         </h4>
-        <div className="flex items-center space-x-1 ml-2">
-          <span className={`px-2 py-1 text-xs rounded-full ${getDifficultyColor(subtask.difficulty)}`}>
-            {subtask.difficulty}
-          </span>
-        </div>
+        <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${getDifficultyColor(subtask.difficulty)}`}>
+          {subtask.difficulty}
+        </span>
       </div>
       
       <p className="text-xs text-slate-600 mb-2 line-clamp-2">
         {subtask.description}
       </p>
       
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
         <div className="flex items-center">
           <Clock size={10} className="mr-1" />
-          {subtask.estimatedTime}
+          <span className="truncate">{subtask.estimatedTime}</span>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center ml-2">
           <User size={10} className="mr-1" />
-          {subtask.primaryAgent}
+          <span className="truncate">{subtask.primaryAgent}</span>
         </div>
       </div>
       
-      <div className="mt-2 flex items-center text-xs">
-        <Target size={10} className="mr-1 text-blue-500" />
-        <span className="text-slate-600 line-clamp-1">{subtask.objective}</span>
+      <div className="flex items-start text-xs">
+        <Target size={10} className="mr-1 text-blue-500 mt-0.5 flex-shrink-0" />
+        <span className="text-slate-600 line-clamp-2">{subtask.objective}</span>
       </div>
     </motion.div>
   );
 };
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, index, onSelect }) => {
   const { selectedTask, selectedSubtask, setSelectedTask, setSelectedSubtask } = useTask();
   const [isExpanded, setIsExpanded] = useState(selectedTask?.id === task.id);
   const isSelected = selectedTask?.id === task.id;
@@ -87,6 +90,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
   const handleTaskClick = () => {
     setSelectedTask(task);
     setIsExpanded(!isExpanded);
+    onSelect?.();
   };
 
   const handleSubtaskClick = (subtask: Subtask) => {
@@ -98,10 +102,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
   
   return (
     <motion.div
-      className={`rounded-lg transition-all duration-200 border-2 ${
+      className={`rounded-lg transition-all duration-200 border-2 touch-manipulation ${
         isSelected
           ? 'border-blue-500 bg-blue-50 shadow-md'
-          : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'
+          : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm active:bg-slate-50'
       }`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -114,36 +118,36 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
     >
       <div
         onClick={handleTaskClick}
-        className="p-4 cursor-pointer"
+        className="p-3 lg:p-4 cursor-pointer"
       >
         <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center">
+          <div className="flex items-center flex-1 min-w-0">
             <motion.div
               animate={{ rotate: isExpanded ? 90 : 0 }}
               transition={{ duration: 0.2 }}
-              className="mr-2"
+              className="mr-2 flex-shrink-0"
             >
               <ChevronRight size={16} className="text-slate-400" />
             </motion.div>
-            <h3 className="font-semibold text-slate-800 text-sm">
+            <h3 className="font-semibold text-slate-800 text-sm truncate">
               {task.name}
             </h3>
           </div>
-          <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full whitespace-nowrap">
+          <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full whitespace-nowrap ml-2 flex-shrink-0">
             {task.phase}
           </span>
         </div>
         
-        <p className="text-slate-600 text-xs line-clamp-2 ml-6">
+        <p className="text-slate-600 text-xs line-clamp-2 ml-6 mb-2">
           {task.description}
         </p>
         
-        <div className="mt-2 ml-6 flex items-center justify-between">
-          <div className="flex items-center text-xs text-slate-500">
-            <Target size={12} className="mr-1" />
-            <span className="line-clamp-1">{task.objective}</span>
+        <div className="ml-6 flex items-center justify-between">
+          <div className="flex items-center text-xs text-slate-500 min-w-0 flex-1">
+            <Target size={12} className="mr-1 flex-shrink-0" />
+            <span className="truncate">{task.objective}</span>
           </div>
-          <span className="text-xs text-slate-500 ml-2">
+          <span className="text-xs text-slate-500 ml-2 flex-shrink-0">
             {task.subtasks.length} subtask{task.subtasks.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -158,7 +162,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2">
+            <div className="px-3 lg:px-4 pb-3 lg:pb-4 space-y-2">
               <div className="h-px bg-slate-200 mb-3"></div>
               <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">
                 Subtasks:
@@ -174,6 +178,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
                     subtask={subtask}
                     isSelected={selectedSubtask?.id === subtask.id}
                     onClick={() => handleSubtaskClick(subtask)}
+                    onSelect={onSelect}
                   />
                 </motion.div>
               ))}
