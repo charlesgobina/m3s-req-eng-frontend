@@ -76,7 +76,7 @@ const MainLayout: React.FC = () => {
             </div>
             
             {/* Exercise Submission - Hidden on mobile, shown in modal */}
-            <div className="hidden lg:block lg:w-1/3 bg-red-500">
+            <div className="hidden lg:block lg:w-1/3">
               <ExerciseSubmission />
             </div>
             

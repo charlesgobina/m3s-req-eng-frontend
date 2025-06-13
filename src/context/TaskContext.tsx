@@ -71,7 +71,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3000/api/tasks");
+      const response = await fetch("https://m3s-req-eng.onrender.com/api/tasks");
       const data = await response.json();
       // Ensure every task has a subtasks array
       const safeTasks = (data.tasks || []).map((task: any) => ({
@@ -93,7 +93,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchTeamMembers = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/tasks/team-members");
+      const response = await fetch("https://m3s-req-eng.onrender.com/api/tasks/team-members");
       const data = await response.json();
       setTeamMembers(data.teamMembers);
     } catch (error) {

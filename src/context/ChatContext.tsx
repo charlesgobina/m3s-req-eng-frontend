@@ -106,7 +106,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsStreaming(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/chat/stream', {
+      const response = await fetch('https://m3s-req-eng.onrender.com/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsValidating(true);
     try {
       const response = await fetch(
-        'http://localhost:3000/api/validation/validate',
+        'https://m3s-req-eng.onrender.com/api/validation/validate',
         {
           method: 'POST',
           headers: {
