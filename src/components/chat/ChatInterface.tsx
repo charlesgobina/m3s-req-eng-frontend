@@ -26,7 +26,7 @@ const ChatInterface: React.FC = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3, delay: 0.2 }}
     >
-      <div className="p-4 lg:p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex-shrink-0">
+      {/* <div className="p-4 lg:p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex-shrink-0">
         <h2 className="text-lg lg:text-xl font-bold flex items-center">
           <Bot className="mr-2" size={20} />
           Team Collaboration
@@ -37,7 +37,7 @@ const ChatInterface: React.FC = () => {
             <p className="text-xs opacity-90 truncate">Current: {selectedSubtask.name}</p>
           </div>
         )}
-      </div>
+      </div> */}
 
       <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-3 lg:space-y-4 bg-gradient-to-b from-slate-50 to-white min-h-0">
         {messages.length === 0 ? (
@@ -59,7 +59,7 @@ const ChatInterface: React.FC = () => {
               <div className="flex items-center">
                 <Loader2 size={16} className="animate-spin mr-2" />
                 <span className="text-slate-600 text-sm">
-                  {selectedSubtask?.primaryAgent || 'Agent'} is typing...
+                  {'Agent'} is typing...
                 </span>
               </div>
             </div>

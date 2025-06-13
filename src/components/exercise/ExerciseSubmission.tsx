@@ -12,48 +12,31 @@ const MobileExercisePanel = memo(({ isExpanded, setIsExpanded, children }: {
   children: React.ReactNode;
 }) => (
   <div className="lg:hidden">
+    <motion.button
+      onClick={() => setIsExpanded(!isExpanded)}
+      className="w-full p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between touch-manipulation"
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="flex items-center">
+        <CheckCircle className="mr-2" size={20} />
+        <span className="font-bold">Exercise</span>
+      </div>
+      {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+    </motion.button>
+
     <AnimatePresence>
       {isExpanded && (
         <motion.div
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ duration: 0.3, type: "spring", damping: 25, stiffness: 200 }}
-          className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-200 shadow-lg z-50"
-          style={{ maxHeight: '90vh' }}
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white border-t border-slate-200 overflow-hidden"
         >
-          <motion.button
-            onClick={() => setIsExpanded(false)}
-            className="w-full p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between touch-manipulation"
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex items-center">
-              <CheckCircle className="mr-2" size={20} />
-              <span className="font-bold">Exercise</span>
-            </div>
-            <ChevronDown size={20} />
-          </motion.button>
-
-          <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 56px)' }}>
-            {children}
-          </div>
+          {children}
         </motion.div>
       )}
     </AnimatePresence>
-
-    {!isExpanded && (
-      <motion.button
-        onClick={() => setIsExpanded(true)}
-        className="w-full p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between touch-manipulation"
-        whileTap={{ scale: 0.98 }}
-      >
-        <div className="flex items-center">
-          <CheckCircle className="mr-2" size={20} />
-          <span className="font-bold">Exercise</span>
-        </div>
-        <ChevronUp size={20} />
-      </motion.button>
-    )}
   </div>
 ));
 

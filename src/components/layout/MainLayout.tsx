@@ -8,7 +8,7 @@ import { useTask } from '../../context/TaskContext';
 import { Menu, X } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { selectedTask } = useTask();
+  const { selectedTask, selectedSubtask } = useTask();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const isHomeTask = selectedTask?.name?.toLowerCase() === 'home';
@@ -26,7 +26,9 @@ const MainLayout: React.FC = () => {
     >
       {/* Mobile Header */}
       <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex items-center justify-between z-50">
-        <h1 className="text-lg font-bold">Requirements Learning</h1>
+        <h1 className="text-lg font-bold">
+          {selectedSubtask?.name || 'Yliopisto'}
+        </h1>
         <button
           onClick={toggleMobileMenu}
           className="p-2 rounded-lg hover:bg-white/10 transition-colors"
@@ -46,7 +48,7 @@ const MainLayout: React.FC = () => {
             onClick={toggleMobileMenu}
           >
             <motion.div
-              className="w-full max-w-[80vw] h-full bg-white"
+              className="w-full max-w-[100vw] h-full bg-white"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
