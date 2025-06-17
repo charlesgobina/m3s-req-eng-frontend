@@ -35,13 +35,13 @@ const ProjectOverview: React.FC = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <div className="inline-flex items-center justify-center w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full mb-4 lg:mb-6">
+          {/* <div className="inline-flex items-center justify-center w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full mb-4 lg:mb-6">
             <BookOpen className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
-          </div>
-          <h1 className="text-2xl lg:text-4xl font-bold text-slate-800 mb-3 lg:mb-4">
-            Welcome to Requirements Engineering
+          </div> */}
+          <h1 className="text-2xl text-left lg:text-4xl font-bold text-slate-800 mb-3 lg:mb-4">
+            Welcome, John!
           </h1>
-          <p className="text-lg lg:text-xl text-slate-600 max-w-2xl mx-auto px-4">
+          <p className="text-lg lg:text-xl text-left text-slate-600 max-w-2xl mx-auto px-0">
             Learn the fundamentals of requirements engineering through hands-on practice with a real-world project
           </p>
         </motion.div>
@@ -187,27 +187,45 @@ const ProjectOverview: React.FC = () => {
           transition={{ duration: 0.6, delay: 0.7 }}
         >
           <h3 className="text-base lg:text-lg font-semibold text-slate-800 mb-3 lg:mb-4">What You'll Learn</h3>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2 lg:mb-3">
-                <Users className="w-5 h-5 lg:w-6 lg:h-6 text-purple-600" />
+          <div className="grid sm:grid-cols-2 gap-4 text-left">
+            <div className="text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 rounded-full flex items-center justify-center mt-1">
+                  <svg className="w-5 h-5 lg:w-6 lg:h-6 text-purple-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-1 lg:mb-2 text-sm lg:text-base">Stakeholder Analysis</h4>
+                  <p className="text-xs lg:text-sm text-slate-600">Identify and analyze project stakeholders</p>
+                </div>
               </div>
-              <h4 className="font-medium text-slate-800 mb-1 lg:mb-2 text-sm lg:text-base">Stakeholder Analysis</h4>
-              <p className="text-xs lg:text-sm text-slate-600">Identify and analyze project stakeholders</p>
             </div>
-            <div className="text-center">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 lg:mb-3">
-                <FileText className="w-5 h-5 lg:w-6 lg:h-6 text-blue-600" />
+            <div className="text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                  <svg className="w-5 h-5 lg:w-6 lg:h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-1 lg:mb-2 text-sm lg:text-base">Requirements Elicitation</h4>
+                  <p className="text-xs lg:text-sm text-slate-600">Learn techniques to gather requirements</p>
+                </div>
               </div>
-              <h4 className="font-medium text-slate-800 mb-1 lg:mb-2 text-sm lg:text-base">Requirements Elicitation</h4>
-              <p className="text-xs lg:text-sm text-slate-600">Learn techniques to gather requirements</p>
             </div>
-            <div className="text-center">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 lg:mb-3">
-                <Target className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" />
+            <div className="text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 rounded-full flex items-center justify-center mt-1">
+                  <svg className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-1 lg:mb-2 text-sm lg:text-base">Requirements Analysis</h4>
+                  <p className="text-xs lg:text-sm text-slate-600">Analyze and prioritize requirements</p>
+                </div>
               </div>
-              <h4 className="font-medium text-slate-800 mb-1 lg:mb-2 text-sm lg:text-base">Requirements Analysis</h4>
-              <p className="text-xs lg:text-sm text-slate-600">Analyze and prioritize requirements</p>
             </div>
           </div>
         </motion.div>

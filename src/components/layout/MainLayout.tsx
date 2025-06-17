@@ -8,7 +8,7 @@ import { useTask } from '../../context/TaskContext';
 import { Menu, X } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { selectedTask } = useTask();
+  const { selectedTask, selectedSubtask } = useTask();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const isHomeTask = selectedTask?.name?.toLowerCase() === 'home';
@@ -19,14 +19,16 @@ const MainLayout: React.FC = () => {
 
   return (
     <motion.div 
-      className="h-screen flex flex-col lg:flex-row relative"
+      className="h-svh flex flex-col lg:flex-row relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
       {/* Mobile Header */}
-      <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex items-center justify-between z-50">
-        <h1 className="text-lg font-bold">Requirements Learning</h1>
+      <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1 flex items-center justify-between z-50">
+        <h1 className="text-lg font-bold">
+          {selectedSubtask?.name || 'Yliopisto'}
+        </h1>
         <button
           onClick={toggleMobileMenu}
           className="p-2 rounded-lg hover:bg-white/10 transition-colors"
@@ -46,7 +48,7 @@ const MainLayout: React.FC = () => {
             onClick={toggleMobileMenu}
           >
             <motion.div
-              className="w-80 max-w-[85vw] h-full bg-white"
+              className="w-full max-w-[100vw] h-full bg-white"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
@@ -60,7 +62,7 @@ const MainLayout: React.FC = () => {
       </AnimatePresence>
 
       {/* Desktop Task List */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block w-1/4">
         <TaskList />
       </div>
 
@@ -76,7 +78,7 @@ const MainLayout: React.FC = () => {
             </div>
             
             {/* Exercise Submission - Hidden on mobile, shown in modal */}
-            <div className="hidden lg:block lg:w-1/4">
+            <div className="hidden lg:block lg:w-1/3">
               <ExerciseSubmission />
             </div>
             
