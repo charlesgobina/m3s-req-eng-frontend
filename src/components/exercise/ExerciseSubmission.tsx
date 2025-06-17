@@ -61,19 +61,8 @@ const DesktopExercisePanel = memo(({ children }: { children: React.ReactNode }) 
   </motion.div>
 ));
 
-const TaskInfo = memo(({ task, subtask }: { task: any; subtask: any }) => {
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty?.toLowerCase()) {
-      case 'beginner':
-        return 'bg-green-100 text-green-700';
-      case 'intermediate':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'advanced':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-slate-100 text-slate-700';
-    }
-  };
+const TaskInfo = memo(({ task, subtask, step }: { task: any; subtask: any; step: any }) => {
+  if (!task || !subtask || !step) return null;
 
   return (
     <motion.div 
@@ -90,82 +79,29 @@ const TaskInfo = memo(({ task, subtask }: { task: any; subtask: any }) => {
           {task.phase}
         </p>
       </div>
-
-      <div className="bg-white rounded-lg p-3 border border-slate-200">
-        <div className="flex items-start justify-between mb-2">
-          <h4 className="font-medium text-slate-800 text-sm flex-1 pr-2">
-            {subtask.name}
-          </h4>
-          <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${getDifficultyColor(subtask.difficulty)}`}>
-            {subtask.difficulty}
-          </span>
-        </div>
-        
-        <p className="text-xs text-slate-600 mb-3">
-          {subtask.description}
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 text-xs">
-          <div className="flex items-center text-slate-500">
-            <Clock size={10} className="mr-1 flex-shrink-0" />
-            <span className="truncate">{subtask.estimatedTime}</span>
-          </div>
-          <div className="flex items-center text-slate-500">
-            <User size={10} className="mr-1 flex-shrink-0" />
-            <span className="truncate">{subtask.primaryAgent}</span>
-          </div>
-        </div>
-
-        <div className="mb-3">
-          <div className="flex items-center mb-1">
-            <Target size={12} className="mr-1 text-blue-500 flex-shrink-0" />
-            <span className="text-xs font-semibold text-slate-700">Objective:</span>
-          </div>
-          <p className="text-xs text-slate-600 ml-4">
-            {subtask.objective}
-          </p>
-        </div>
-
+      
+      <div className="mt-3">
+        <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wide mb-2">
+          Steps:
+        </h4>
         <div className="space-y-2">
-          <div>
-            <h5 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">
-              Expected Outcomes:
-            </h5>
-            <ul className="text-xs text-slate-600 space-y-1">
-              {subtask.expectedOutcomes?.map((outcome: string, index: number) => (
-                <motion.li 
-                  key={index} 
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.2, delay: 0.5 + (index * 0.1) }}
-                >
-                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                  <span className="break-words">{outcome}</span>
-                </motion.li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">
-              Deliverables:
-            </h5>
-            <ul className="text-xs text-slate-600 space-y-1">
-              {subtask.deliverables?.map((deliverable: string, index: number) => (
-                <motion.li 
-                  key={index} 
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.2, delay: 0.6 + (index * 0.1) }}
-                >
-                  <Award size={10} className="mt-1 mr-2 flex-shrink-0 text-purple-500" />
-                  <span className="break-words">{deliverable}</span>
-                </motion.li>
-              ))}
-            </ul>
-          </div>
+          {subtask.steps.map((stepItem: any) => (
+            <div 
+              key={stepItem.id}
+              className={`p-2 rounded-md text-sm ${stepItem.id === step.id 
+                ? 'bg-purple-100 border-l-4 border-purple-500' 
+                : 'bg-white border-l-4 border-transparent'}`}
+            >
+              <div className="flex items-center">
+                {stepItem.isCompleted && (
+                  <CheckCircle size={14} className="text-green-500 mr-2 flex-shrink-0" />
+                )}
+                <span className={`${stepItem.id === step.id ? 'font-medium' : ''}`}>
+                  {stepItem.step}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </motion.div>
@@ -253,15 +189,15 @@ const ExerciseContent = memo(() => {
     validationResult
   } = useChat();
   
-  const { selectedTask, selectedSubtask, navigateToNext } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, navigateToNext } = useTask();
 
-  if (!selectedTask || !selectedSubtask) {
+  if (!selectedTask || !selectedSubtask || !selectedStep) {
     return null;
   }
 
   return (
     <>
-      <TaskInfo task={selectedTask} subtask={selectedSubtask} />
+      <TaskInfo task={selectedTask} subtask={selectedSubtask} step={selectedStep} />
       {selectedTask.name.toLowerCase() !== 'home' && (
         <SubmissionArea
           submission={submission}

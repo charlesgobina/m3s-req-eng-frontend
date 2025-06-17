@@ -48,36 +48,20 @@ const SubtaskItem: React.FC<{
         <h4 className="font-medium text-slate-800 text-sm leading-tight pr-2">
           {subtask.name}
         </h4>
-        <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${getDifficultyColor(subtask.difficulty)}`}>
-          {subtask.difficulty}
-        </span>
+        
       </div>
       
       <p className="text-xs text-slate-600 mb-2 line-clamp-2">
         {subtask.description}
       </p>
       
-      <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-        <div className="flex items-center">
-          <Clock size={10} className="mr-1" />
-          <span className="truncate">{subtask.estimatedTime}</span>
-        </div>
-        <div className="flex items-center ml-2">
-          <User size={10} className="mr-1" />
-          <span className="truncate">{subtask.primaryAgent}</span>
-        </div>
-      </div>
       
-      <div className="flex items-start text-xs">
-        <Target size={10} className="mr-1 text-blue-500 mt-0.5 flex-shrink-0" />
-        <span className="text-slate-600 line-clamp-2">{subtask.objective}</span>
-      </div>
     </motion.div>
   );
 };
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, index, onSelect }) => {
-  const { selectedTask, selectedSubtask, setSelectedTask, setSelectedSubtask } = useTask();
+  const { selectedTask, selectedSubtask, setSelectedTask, setSelectedSubtask, selectedStep, setSelectedStep } = useTask();
   const [isExpanded, setIsExpanded] = useState(selectedTask?.id === task.id);
   const isSelected = selectedTask?.id === task.id;
   
@@ -98,6 +82,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onSelect }) => {
       setSelectedTask(task);
     }
     setSelectedSubtask(subtask);
+    // Set the first step as selected if available
+    if (subtask.steps && subtask.steps.length > 0) {
+      setSelectedStep(subtask.steps[0]);
+    }
   };
   
   return (

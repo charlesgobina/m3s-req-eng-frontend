@@ -1,6 +1,7 @@
 import React, { createContext, useState, useRef, useContext, useEffect } from 'react';
 import { useTask } from './TaskContext';
 import { useProjectContext } from './ProjectContext';
+import { i, s } from 'framer-motion/client';
 
 export interface Message {
   id: string;
@@ -64,7 +65,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const { selectedTask, selectedSubtask, teamMembers } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, teamMembers } = useTask();
   const { projectContext } = useProjectContext();
   
   useEffect(() => {
@@ -92,7 +93,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !selectedTask || !selectedSubtask || isStreaming) return;
+    // console.log(inputMessage, selectedTask, selectedSubtask, selectedStep, isStreaming);
+    if (!inputMessage.trim() || !selectedTask || !selectedSubtask || !selectedStep || isStreaming) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -115,6 +117,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           message: inputMessage,
           taskId: selectedTask.id,
           subtask: selectedSubtask,
+          step: selectedStep,
           sessionId,
           projectContext,
         }),
@@ -201,10 +204,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const validateSubmission = async () => {
-    if (!submission.trim() || !selectedTask || isValidating) return;
+    if (!submission.trim() || !selectedTask || !selectedStep || isValidating) return;
 
     setIsValidating(true);
     try {
+      // https://m3s-req-eng.onrender.com
+      // http://localhost:3000/api/chat/stream
       const response = await fetch(
         'https://m3s-req-eng.onrender.com/api/validation/validate',
         {
@@ -216,6 +221,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             submission,
             taskId: selectedTask.id,
             subtask: selectedSubtask,
+            step: selectedStep,
             sessionId,
             projectContext,
           }),
