@@ -65,7 +65,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const { selectedTask, selectedSubtask, selectedStep, teamMembers } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion } = useTask();
   const { projectContext } = useProjectContext();
   
   useEffect(() => {
@@ -230,6 +230,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const result = await response.json();
       setValidationResult(result);
+
+      // If validation passed, update the step completion status
+      if (result.passed && selectedStep) {
+        updateStepCompletion(selectedStep.id, true, submission);
+      }
     } catch (error) {
       console.error('Error validating submission:', error);
       setValidationResult({

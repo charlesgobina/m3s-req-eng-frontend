@@ -45,6 +45,7 @@ interface TaskContextType {
   selectedStep: Steps | null;
   setSelectedStep: (step: Steps) => void;
   navigateToNext: () => void;
+  updateStepCompletion: (stepId: string, isCompleted: boolean, studentResponse?: string) => void;
   isLoading: boolean;
   error: string | null;
 }
@@ -59,6 +60,7 @@ const TaskContext = createContext<TaskContextType>({
   selectedStep: null,
   setSelectedSubtask: () => {},
   navigateToNext: () => {},
+  updateStepCompletion: () => {},
   isLoading: false,
   error: null,
 });
@@ -132,18 +134,50 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // const handleSetSelectedStep = (step: Steps) => {
-  //   setSelectedStep(step);
-  //   if (selectedSubtask) {
-  //     const subtaskWithStep = selectedSubtask.steps.find(s => s.id === step.id);
-  //     if (subtaskWithStep) {
-  //       setSelectedSubtask({
-  //         ...selectedSubtask,
-  //         steps: selectedSubtask.steps.map(s => s.id === step.id ? subtaskWithStep : s),
-  //       });
-  //     }
-  //   }
-  // };
+  const updateStepCompletion = (stepId: string, isCompleted: boolean, studentResponse?: string) => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => ({
+        ...task,
+        subtasks: task.subtasks.map(subtask => ({
+          ...subtask,
+          steps: subtask.steps.map(step => 
+            step.id === stepId 
+              ? { 
+                  ...step, 
+                  isCompleted, 
+                  studentResponse: studentResponse || step.studentResponse 
+                }
+              : step
+          )
+        }))
+      }))
+    );
+
+    // Update the selected step if it's the one being updated
+    if (selectedStep && selectedStep.id === stepId) {
+      setSelectedStep(prev => prev ? {
+        ...prev,
+        isCompleted,
+        studentResponse: studentResponse || prev.studentResponse
+      } : null);
+    }
+
+    // Update the selected subtask to reflect the changes
+    if (selectedSubtask) {
+      setSelectedSubtask(prev => prev ? {
+        ...prev,
+        steps: prev.steps.map(step => 
+          step.id === stepId 
+            ? { 
+                ...step, 
+                isCompleted, 
+                studentResponse: studentResponse || step.studentResponse 
+              }
+            : step
+        )
+      } : null);
+    }
+  };
 
   const navigateToNext = () => {
     if (!selectedTask) return;
@@ -217,6 +251,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSelectedStep,
         setSelectedSubtask,
         navigateToNext,
+        updateStepCompletion,
         isLoading,
         error,
       }}
