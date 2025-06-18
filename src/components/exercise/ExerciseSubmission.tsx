@@ -1,6 +1,6 @@
 import React, { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Loader2, Target, Clock, User, Award, ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Circle, Play, BookOpen, Lightbulb, Flag } from 'lucide-react';
+import { CheckCircle, Loader2, Target, ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useTask } from '../../context/TaskContext';
 import ValidationResult from './ValidationResult';
@@ -14,15 +14,14 @@ const MobileExercisePanel = memo(({ isExpanded, setIsExpanded, children }: {
   <div className="lg:hidden">
     <motion.button
       onClick={() => setIsExpanded(!isExpanded)}
-      className="w-full p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between touch-manipulation rounded-2xl shadow-lg mb-3"
+      className="w-full p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-between touch-manipulation rounded-xl mb-3"
       whileTap={{ scale: 0.98 }}
-      style={{ boxShadow: '0 8px 32px rgba(80,0,120,0.18)' }}
     >
       <div className="flex items-center">
-        <CheckCircle className="mr-3" size={22} />
-        <span className="font-bold text-lg">Exercise</span>
+        <CheckCircle className="mr-3" size={20} />
+        <span className="font-semibold">Exercise</span>
       </div>
-      {isExpanded ? <ChevronDown size={22} /> : <ChevronUp size={22} />}
+      {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
     </motion.button>
 
     <AnimatePresence>
@@ -32,7 +31,7 @@ const MobileExercisePanel = memo(({ isExpanded, setIsExpanded, children }: {
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="bg-white border border-slate-200 overflow-hidden rounded-2xl shadow-lg"
+          className="bg-white border border-slate-200 overflow-hidden rounded-xl"
         >
           {children}
         </motion.div>
@@ -43,23 +42,19 @@ const MobileExercisePanel = memo(({ isExpanded, setIsExpanded, children }: {
 
 const DesktopExercisePanel = memo(({ children }: { children: React.ReactNode }) => (
   <motion.div 
-    className="hidden lg:flex w-2/5 bg-gradient-to-br from-slate-50 to-white shadow-2xl border-l border-slate-200 flex-col h-full"
+    className="hidden lg:flex flex-1 bg-white border-l border-slate-200 flex-col h-full"
     initial={{ x: 50, opacity: 0 }}
     animate={{ x: 0, opacity: 1 }}
     transition={{ duration: 0.3, delay: 0.3 }}
   >
-    <div className="p-8 border-b border-slate-200 bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 text-white flex-shrink-0">
-      <div className="flex items-center mb-3">
-        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-4">
-          <Target size={24} className="text-white" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold">Exercise Steps</h2>
-          <p className="text-purple-100 text-sm">Complete each step to progress</p>
-        </div>
-      </div>
+    <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white flex-shrink-0">
+      <h2 className="text-xl font-bold flex items-center">
+        <Target className="mr-2" size={20} />
+        Exercise Steps
+      </h2>
+      <p className="text-purple-100 text-sm mt-1">Complete each step to progress</p>
     </div>
-    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
+    <div className="flex-1 overflow-y-auto">
       {children}
     </div>
   </motion.div>
@@ -77,31 +72,31 @@ const StepNavigation = memo(({
   if (steps.length <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between p-6 bg-white border-b border-slate-200 shadow-sm">
+    <div className="flex items-center justify-between p-4 bg-slate-50 border-b border-slate-200">
       <button
         onClick={() => onStepChange(Math.max(0, currentStepIndex - 1))}
         disabled={currentStepIndex === 0}
-        className="flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        className="flex items-center px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        <ChevronLeft size={18} className="mr-1" />
+        <ChevronLeft size={16} className="mr-1" />
         Previous
       </button>
 
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2">
         {steps.map((step, index) => (
           <button
             key={step.id}
             onClick={() => onStepChange(index)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
               index === currentStepIndex
-                ? 'bg-purple-600 text-white shadow-lg scale-110'
+                ? 'bg-purple-600 text-white'
                 : step.isCompleted
-                ? 'bg-green-500 text-white shadow-md hover:shadow-lg'
-                : 'bg-slate-200 text-slate-600 hover:bg-slate-300 hover:shadow-md'
+                ? 'bg-green-500 text-white'
+                : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
             }`}
           >
             {step.isCompleted ? (
-              <CheckCircle size={16} />
+              <CheckCircle size={14} />
             ) : (
               index + 1
             )}
@@ -112,178 +107,14 @@ const StepNavigation = memo(({
       <button
         onClick={() => onStepChange(Math.min(steps.length - 1, currentStepIndex + 1))}
         disabled={currentStepIndex === steps.length - 1}
-        className="flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        className="flex items-center px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         Next
-        <ChevronRight size={18} className="ml-1" />
+        <ChevronRight size={16} className="ml-1" />
       </button>
     </div>
   );
 });
-
-const ObjectiveCard = memo(({ objective, stepIndex, totalSteps, isCompleted }: {
-  objective: string;
-  stepIndex: number;
-  totalSteps: number;
-  isCompleted: boolean;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4 }}
-    className={`relative overflow-hidden rounded-2xl p-6 mb-6 ${
-      isCompleted 
-        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200' 
-        : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200'
-    }`}
-  >
-    <div className="flex items-start justify-between mb-4">
-      <div className="flex items-center">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 ${
-          isCompleted 
-            ? 'bg-green-500 text-white shadow-lg' 
-            : 'bg-blue-500 text-white shadow-lg'
-        }`}>
-          {isCompleted ? (
-            <CheckCircle size={24} />
-          ) : (
-            <span className="font-bold text-lg">{stepIndex + 1}</span>
-          )}
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-slate-800 mb-1">
-            Step {stepIndex + 1} of {totalSteps}
-          </h3>
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-            isCompleted 
-              ? 'bg-green-100 text-green-700' 
-              : 'bg-blue-100 text-blue-700'
-          }`}>
-            {isCompleted ? '✓ Completed' : 'In Progress'}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div className="bg-white/70 backdrop-blur-sm rounded-xl p-5 border border-white/50">
-      <div className="flex items-center mb-3">
-        <Target size={20} className="text-slate-600 mr-2" />
-        <h4 className="font-semibold text-slate-800">Objective</h4>
-      </div>
-      <p className="text-slate-700 leading-relaxed">{objective}</p>
-    </div>
-
-    {/* Decorative elements */}
-    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/20 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
-    <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-white/10 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
-  </motion.div>
-));
-
-const TaskDescriptionCard = memo(({ description }: { description: string }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.1 }}
-    className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-slate-200 hover:shadow-xl transition-shadow duration-300"
-  >
-    <div className="flex items-center mb-4">
-      <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center mr-4">
-        <BookOpen size={20} className="text-white" />
-      </div>
-      <h4 className="text-lg font-semibold text-slate-800">Task Description</h4>
-    </div>
-    <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
-      <p className="text-slate-700 leading-relaxed">{description}</p>
-    </div>
-  </motion.div>
-));
-
-const CriteriaCard = memo(({ criteria }: { criteria: string[] }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.2 }}
-    className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-slate-200 hover:shadow-xl transition-shadow duration-300"
-  >
-    <div className="flex items-center mb-4">
-      <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center mr-4">
-        <Flag size={20} className="text-white" />
-      </div>
-      <h4 className="text-lg font-semibold text-slate-800">Success Criteria</h4>
-    </div>
-    <div className="space-y-3">
-      {criteria.map((criterion: string, index: number) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 + (index * 0.1) }}
-          className="flex items-start bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200"
-        >
-          <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-            <Circle size={10} className="text-white fill-current" />
-          </div>
-          <span className="text-slate-700 leading-relaxed">{criterion}</span>
-        </motion.div>
-      ))}
-    </div>
-  </motion.div>
-));
-
-const PreviousResponseCard = memo(({ response }: { response: string }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.3 }}
-    className="bg-white rounded-2xl p-6 mb-6 shadow-lg border-2 border-green-200 hover:shadow-xl transition-shadow duration-300"
-  >
-    <div className="flex items-center mb-4">
-      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mr-4">
-        <CheckCircle size={20} className="text-white" />
-      </div>
-      <h4 className="text-lg font-semibold text-green-700">✓ Your Successful Response</h4>
-    </div>
-    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
-      <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{response}</p>
-    </div>
-  </motion.div>
-));
-
-const ResponseInputCard = memo(({ 
-  submission, 
-  setSubmission, 
-  handleKeyPress 
-}: {
-  submission: string;
-  setSubmission: (value: string) => void;
-  handleKeyPress: (e: React.KeyboardEvent, isSubmission?: boolean) => void;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.4 }}
-    className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-slate-200 hover:shadow-xl transition-shadow duration-300"
-  >
-    <div className="flex items-center mb-4">
-      <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mr-4">
-        <Lightbulb size={20} className="text-white" />
-      </div>
-      <h4 className="text-lg font-semibold text-slate-800">Your Response</h4>
-    </div>
-    <div className="relative">
-      <textarea
-        value={submission}
-        onChange={(e) => setSubmission(e.target.value)}
-        onKeyPress={(e) => handleKeyPress(e, true)}
-        placeholder="Write your solution here... Be detailed and thoughtful in your response."
-        className="w-full min-h-[200px] p-5 border-2 border-slate-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm text-slate-700 leading-relaxed placeholder-slate-400"
-      />
-      <div className="absolute bottom-3 right-3 text-xs text-slate-400">
-        Press Shift+Enter for new line
-      </div>
-    </div>
-  </motion.div>
-));
 
 const StepCard = memo(({ 
   step, 
@@ -320,52 +151,104 @@ const StepCard = memo(({
       transition={{ duration: 0.3 }}
       className="flex flex-col h-full"
     >
-      {/* Step Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <ObjectiveCard 
-          objective={step.objective}
-          stepIndex={stepIndex}
-          totalSteps={totalSteps}
-          isCompleted={isCompleted}
-        />
+      {/* Main Step Card */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className={`rounded-xl border p-6 mb-6 ${
+          isCompleted 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-slate-50 border-slate-200'
+        }`}>
+          {/* Step Header */}
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${
+                isCompleted 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-purple-100 text-purple-600'
+              }`}>
+                {isCompleted ? (
+                  <CheckCircle size={20} />
+                ) : (
+                  <span className="font-bold">{stepIndex + 1}</span>
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 text-lg">
+                  Step {stepIndex + 1} of {totalSteps}
+                </h3>
+                <p className="text-sm text-slate-600">
+                  {isCompleted ? 'Completed' : 'In Progress'}
+                </p>
+              </div>
+            </div>
+            {isCompleted && (
+              <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                ✓ Passed
+              </div>
+            )}
+          </div>
 
-        <TaskDescriptionCard description={step.step} />
+          {/* Objective */}
+          <div className="mb-6">
+            <div className="flex items-center mb-3">
+              <Target size={16} className="text-slate-600 mr-2" />
+              <h4 className="font-medium text-slate-800">Objective</h4>
+            </div>
+            <p className="text-slate-700 leading-relaxed pl-6">{step.objective}</p>
+          </div>
 
-        {step.validationCriteria && step.validationCriteria.length > 0 && (
-          <CriteriaCard criteria={step.validationCriteria} />
-        )}
+          {/* Task Description */}
+          <div className="mb-6">
+            <h4 className="font-medium text-slate-800 mb-3">Task Description</h4>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <p className="text-slate-700 leading-relaxed">{step.step}</p>
+            </div>
+          </div>
 
-        {isCompleted && hasValidResponse && (
-          <PreviousResponseCard response={step.studentResponse} />
-        )}
+          {/* Previous Response (if completed) */}
+          {isCompleted && hasValidResponse && (
+            <div className="mb-6">
+              <h4 className="font-medium text-green-700 mb-3">✓ Your Successful Response</h4>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{step.studentResponse}</p>
+              </div>
+            </div>
+          )}
 
-        {!isCompleted && (
-          <ResponseInputCard
-            submission={submission}
-            setSubmission={setSubmission}
-            handleKeyPress={handleKeyPress}
-          />
-        )}
+          {/* Current Response Area */}
+          {!isCompleted && (
+            <div>
+              <h4 className="font-medium text-slate-800 mb-3">Your Response</h4>
+              <textarea
+                value={submission}
+                onChange={(e) => setSubmission(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, true)}
+                placeholder="Write your solution here..."
+                className="w-full min-h-[200px] p-4 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="p-6 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white flex-shrink-0">
+      <div className="p-6 border-t border-slate-200 bg-slate-50 flex-shrink-0">
         {!isCompleted ? (
           <motion.button
             onClick={validateSubmission}
             disabled={!submission.trim() || isValidating}
-            className="w-full px-8 py-4 bg-gradient-to-r from-purple-500 via-purple-600 to-pink-600 text-white rounded-2xl hover:from-purple-600 hover:via-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl touch-manipulation font-semibold text-lg"
-            whileHover={{ scale: 1.02, y: -2 }}
+            className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium"
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             {isValidating ? (
               <>
-                <Loader2 size={22} className="animate-spin mr-3" />
-                Validating Your Response...
+                <Loader2 size={18} className="animate-spin mr-2" />
+                Validating...
               </>
             ) : (
               <>
-                <CheckCircle size={22} className="mr-3" />
+                <CheckCircle size={18} className="mr-2" />
                 Submit & Validate
               </>
             )}
@@ -373,12 +256,12 @@ const StepCard = memo(({
         ) : (
           <motion.button
             onClick={handleNextClick}
-            className="w-full px-8 py-4 bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 text-white rounded-2xl hover:from-green-600 hover:via-green-700 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl touch-manipulation font-semibold text-lg"
-            whileHover={{ scale: 1.02, y: -2 }}
+            className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center font-medium"
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Continue to Next Step
-            <ArrowRight size={22} className="ml-3" />
+            Continue to Next
+            <ArrowRight size={18} className="ml-2" />
           </motion.button>
         )}
       </div>
@@ -429,21 +312,14 @@ const ExerciseContent = memo(() => {
 
   if (!selectedTask || !selectedSubtask || !selectedStep) {
     return (
-      <div className="flex items-center justify-center h-full p-12">
-        <motion.div 
-          className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="w-24 h-24 bg-gradient-to-br from-slate-200 to-slate-300 rounded-3xl flex items-center justify-center mb-6 mx-auto">
-            <Target size={40} className="text-slate-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-slate-600 mb-3">Select a task to begin</h3>
-          <p className="text-slate-500 max-w-md">
-            Choose a task from the sidebar to start working on exercises and begin your learning journey
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="text-center">
+          <Target size={48} className="mx-auto text-slate-300 mb-4" />
+          <p className="text-slate-500 font-medium">Select a task to begin</p>
+          <p className="text-slate-400 text-sm mt-2">
+            Choose a task from the sidebar to start working on exercises
           </p>
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -457,21 +333,14 @@ const ExerciseContent = memo(() => {
 
   if (!currentStep) {
     return (
-      <div className="flex items-center justify-center h-full p-12">
-        <motion.div 
-          className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="w-24 h-24 bg-gradient-to-br from-slate-200 to-slate-300 rounded-3xl flex items-center justify-center mb-6 mx-auto">
-            <Play size={40} className="text-slate-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-slate-600 mb-3">No steps available</h3>
-          <p className="text-slate-500 max-w-md">
-            This subtask doesn't have any steps defined yet. Please check back later or contact support.
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="text-center">
+          <Play size={48} className="mx-auto text-slate-300 mb-4" />
+          <p className="text-slate-500 font-medium">No steps available</p>
+          <p className="text-slate-400 text-sm mt-2">
+            This subtask doesn't have any steps defined yet
           </p>
-        </motion.div>
+        </div>
       </div>
     );
   }

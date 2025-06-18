@@ -72,13 +72,13 @@ const MainLayout: React.FC = () => {
           <ProjectOverview />
         ) : (
           <>
-            {/* Chat Interface - Reduced width */}
-            <div className="flex-1 lg:w-3/5 flex flex-col min-h-0">
+            {/* Chat Interface */}
+            <div className="flex-1 lg:w-1/2 flex flex-col min-h-0">
               <ChatInterface />
             </div>
             
-            {/* Exercise Submission - Increased width */}
-            <div className="hidden lg:block lg:w-2/5">
+            {/* Exercise Submission - Full remaining width */}
+            <div className="hidden lg:block lg:flex-1">
               <ExerciseSubmission />
             </div>
             
