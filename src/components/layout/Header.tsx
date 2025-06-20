@@ -15,7 +15,7 @@ const Header: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+    <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between">
       <div className="flex items-center">
         <h1 className="text-lg font-semibold text-slate-800">
           Welcome back, {user.firstName}!
