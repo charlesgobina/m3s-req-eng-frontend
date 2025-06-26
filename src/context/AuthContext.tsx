@@ -1,19 +1,26 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState, LoginCredentials, SignupData } from '../types/auth';
+import { apiService } from '../services/apiService';
+import { signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
   signup: (data: SignupData) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  isReqLoading: false,
   login: async () => ({ success: false }),
   signup: async () => ({ success: false }),
   logout: () => {},
+  refreshAuth: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -23,84 +30,182 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user: null,
     isAuthenticated: false,
     isLoading: true,
+    isReqLoading: false,
   });
 
-  useEffect(() => {
-    // Check for existing session on app load
-    const checkAuthStatus = () => {
-      const storedUser = localStorage.getItem('user');
-      const token = localStorage.getItem('authToken');
-      
-      if (storedUser && token) {
-        try {
-          const user = JSON.parse(storedUser);
-          setAuthState({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error) {
-          console.error('Error parsing stored user:', error);
-          localStorage.removeItem('user');
-          localStorage.removeItem('authToken');
-          setAuthState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-        }
-      } else {
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-      }
-    };
+  // Function to verify token and get user data
+  const verifyAuthToken = async (): Promise<boolean> => {
+    const token = localStorage.getItem('authToken');
+    
+    if (!token) {
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        isReqLoading: false,
+      });
+      return false;
+    }
 
-    checkAuthStatus();
-  }, []);
-
-  const login = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
     try {
-      setAuthState(prev => ({ ...prev, isLoading: true }));
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Dummy validation - in real app, this would be an API call
-      if (credentials.email && credentials.password.length >= 6) {
-        const user: User = {
-          id: `user_${Date.now()}`,
-          firstName: credentials.email.split('@')[0].split('.')[0] || 'John',
-          lastName: credentials.email.split('@')[0].split('.')[1] || 'Doe',
-          email: credentials.email,
-          role: credentials.email.includes('lecturer') ? 'lecturer' : 'student',
-        };
-
-        // Store in localStorage (in real app, you'd store JWT token)
+      const response = await apiService.verifyToken();
+      
+      if (response.success && response.data) {
+        const user = response.data.user;
         localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('authToken', `token_${Date.now()}`);
-
+        
         setAuthState({
           user,
           isAuthenticated: true,
           isLoading: false,
+          isReqLoading: false,
         });
-
-        return { success: true };
+        return true;
       } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        // Token is invalid or expired
+        apiService.clearAuth();
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isReqLoading: false,
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Token verification error:', error);
+      apiService.clearAuth();
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        isReqLoading: false,
+      });
+      return false;
+    }
+  };
+
+  // Check authentication status on app load and set up Firebase auth listener
+  useEffect(() => {
+    // Set up Firebase auth state listener for automatic token refresh
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Get fresh ID token (Firebase automatically handles refresh)
+          const idToken = await firebaseUser.getIdToken(true); // true forces refresh
+          console.log('Firebase auth state changed - token refreshed');
+          
+          // Update stored token
+          localStorage.setItem('authToken', idToken);
+          
+          // Verify user data is still in localStorage
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            setAuthState({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+              isReqLoading: false,
+            });
+          } else {
+            // If no user data, verify with backend
+            await verifyAuthToken();
+          }
+        } catch (error) {
+          console.error('Error refreshing token:', error);
+          // If token refresh fails, clear auth state
+          apiService.clearAuth();
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            isReqLoading: false,
+          });
+        }
+      } else {
+        // User is signed out of Firebase
+        console.log('Firebase user signed out');
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isReqLoading: false,
+        });
+      }
+    });
+
+    // Initial auth verification
+    verifyAuthToken();
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, []);
+
+  const login = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // Don't set loading state to true for login attempts to prevent component unmounting
+      setAuthState(prev => ({ ...prev, isReqLoading: true }));
+      console.log('Calling apiService.login...');
+      const response = await apiService.login(credentials);
+      console.log('API response:', response);
+
+      if (response.success && response.data) {
+        const { customToken, user } = response.data;
+        console.log('Login successful, received custom token:', { 
+          token: customToken ? 'present' : 'missing', 
+          tokenValue: customToken ? `${customToken.substring(0, 20)}...` : 'null',
+          user 
+        });
+        
+        try {
+          // Exchange custom token for Firebase ID token
+          console.log('Exchanging custom token for ID token...');
+          const userCredential = await signInWithCustomToken(auth, customToken);
+          const idToken = await userCredential.user.getIdToken();
+          
+          console.log('ID token obtained:', idToken ? `${idToken.substring(0, 20)}...` : 'null');
+          
+          // Store the ID token (not the custom token)
+          localStorage.setItem('authToken', idToken);
+          localStorage.setItem('user', JSON.stringify(user));
+          
+          // Verify token was stored
+          const storedToken = localStorage.getItem('authToken');
+          console.log('ID token stored successfully:', !!storedToken);
+          console.log('Stored ID token value:', storedToken ? `${storedToken.substring(0, 20)}...` : 'null');
+
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            isReqLoading: false,
+          });
+
+          console.log('Auth state updated, returning success');
+          return { success: true };
+        } catch (firebaseError) {
+          console.error('Firebase authentication error:', firebaseError);
+          return {
+            success: false,
+            error: 'Failed to authenticate with Firebase. Please try again.'
+          };
+        }
+      } else {
+        console.log('Login failed:', response.error);
+        // Don't change loading state on failure to prevent component remount
+        setAuthState(prev => ({ ...prev, isReqLoading: false }));
         return { 
           success: false, 
-          error: 'Invalid email or password. Password must be at least 6 characters.' 
+          error: response.error || 'Login failed. Please try again.' 
         };
       }
     } catch (error) {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
+      console.error('Login error:', error);
+      // Don't change loading state on error to prevent component remount
       return { 
         success: false, 
-        error: 'Login failed. Please try again.' 
+        error: 'Network error. Please check your connection and try again.' 
       };
     }
   };
@@ -109,61 +214,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      const response = await apiService.signup(data);
 
-      // Dummy validation
-      if (data.password !== data.confirmPassword) {
+      if (response.success && response.data) {
+        const { customToken, user } = response.data;
+        
+        // Store token and user data
+        localStorage.setItem('authToken', customToken);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          isReqLoading: false,
+        });
+
+        return { success: true };
+      } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
-        return { success: false, error: 'Passwords do not match.' };
+        return { 
+          success: false, 
+          error: response.error || 'Signup failed. Please try again.' 
+        };
       }
-
-      if (data.password.length < 6) {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        return { success: false, error: 'Password must be at least 6 characters long.' };
-      }
-
-      if (!data.firstName.trim() || !data.lastName.trim()) {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        return { success: false, error: 'First name and last name are required.' };
-      }
-
-      const user: User = {
-        id: `user_${Date.now()}`,
-        firstName: data.firstName.trim(),
-        lastName: data.lastName.trim(),
-        email: data.email,
-        role: data.role,
-      };
-
-      // Store in localStorage
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('authToken', `token_${Date.now()}`);
-
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-
-      return { success: true };
     } catch (error) {
+      console.error('Signup error:', error);
       setAuthState(prev => ({ ...prev, isLoading: false }));
       return { 
         success: false, 
-        error: 'Signup failed. Please try again.' 
+        error: 'Network error. Please check your connection and try again.' 
       };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('authToken');
+  const logout = async () => {
+    try {
+      // Sign out of Firebase (this will trigger the auth state listener)
+      await signOut(auth);
+      console.log('Signed out of Firebase');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+    
+    // Clear local storage and auth state
+    apiService.clearAuth();
     setAuthState({
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      isReqLoading: false,
     });
+  };
+
+  const refreshAuth = async (): Promise<void> => {
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        // Force refresh the ID token
+        const idToken = await currentUser.getIdToken(true);
+        localStorage.setItem('authToken', idToken);
+        console.log('Token manually refreshed');
+      }
+      await verifyAuthToken();
+    } catch (error) {
+      console.error('Error refreshing auth:', error);
+      await verifyAuthToken();
+    }
   };
 
   return (
@@ -173,6 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
+        refreshAuth,
       }}
     >
       {children}

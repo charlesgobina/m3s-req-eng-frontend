@@ -14,7 +14,7 @@ import ConnectionStatus from './ConnectionStatus';
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isReqLoading } = useAuth();
   const { error, errorType, isError, clearError } = useErrorHandler();
   const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
@@ -215,7 +215,7 @@ const LoginForm: React.FC = () => {
                         : 'border-slate-300 focus:ring-blue-500 focus:border-transparent'
                     }`}
                     placeholder="Enter your email"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                     autoComplete="email"
                   />
                 </div>
@@ -249,14 +249,14 @@ const LoginForm: React.FC = () => {
                         : 'border-slate-300 focus:ring-blue-500 focus:border-transparent'
                     }`}
                     placeholder="Enter your password"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
@@ -274,12 +274,12 @@ const LoginForm: React.FC = () => {
 
               <motion.button
                 type="submit"
-                disabled={isLoading}
+                disabled={isReqLoading}
                 className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-2.5 sm:py-3 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm sm:text-base"
-                whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                whileHover={{ scale: isReqLoading ? 1 : 1.02 }}
+                whileTap={{ scale: isReqLoading ? 1 : 0.98 }}
               >
-                {isLoading ? (
+                {isReqLoading ? (
                   <div className="flex items-center justify-center">
                     <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mr-2" />
                     Signing In...

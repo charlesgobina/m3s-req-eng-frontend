@@ -1,11 +1,13 @@
+// src/context/TaskContext.tsx - Updated with authentication
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { useAuth } from './AuthContext';
+import { apiService } from '../services/apiService';
 
 export interface Subtask {
   id: string;
   name: string;
   description: string;
   steps: Steps[];
-  
 }
 
 export interface Steps {
@@ -68,6 +70,7 @@ const TaskContext = createContext<TaskContextType>({
 export const useTask = () => useContext(TaskContext);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -76,16 +79,26 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Only fetch tasks when user is authenticated
   useEffect(() => {
-    fetchTasks();
-    fetchTeamMembers();
-  }, []);
+    if (isAuthenticated) {
+      fetchTasks();
+      fetchTeamMembers();
+    }
+  }, [isAuthenticated]);
 
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("https://m3s-req-eng.onrender.com/api/tasks");
-      const data = await response.json();
+      // Use the apiService for authenticated requests
+      const response = await apiService.authenticatedRequest('/api/tasks');
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch tasks');
+      }
+      
+      const data = response.data;
+      
       // Ensure every task has a subtasks array and each subtask has a steps array
       const safeTasks = (data.tasks || []).map((task: any) => ({
         ...task,
@@ -96,6 +109,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }))
           : [],
       }));
+      
       setTasks(safeTasks);
       if (safeTasks.length > 0) {
         setSelectedTask(safeTasks[0]);
@@ -103,7 +117,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
     } catch (error) {
       console.error("Error fetching tasks:", error);
-      setError("Failed to load tasks. Please try again later.");
+      setError("Failed to load tasks. Please check your authentication.");
     } finally {
       setIsLoading(false);
     }
@@ -111,49 +125,39 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchTeamMembers = async () => {
     try {
-      const response = await fetch("https://m3s-req-eng.onrender.com/api/tasks/team-members");
-      const data = await response.json();
-      setTeamMembers(data.teamMembers);
+      // Use the apiService for authenticated requests
+      const response = await apiService.authenticatedRequest('/api/tasks/team-members');
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch team members');
+      }
+      
+      const data = response.data;
+      setTeamMembers(data.teamMembers || []);
     } catch (error) {
       console.error("Error fetching team members:", error);
+      // Team members might be less critical, so we don't set a blocking error
     }
   };
 
   const handleSetSelectedTask = (task: Task) => {
     setSelectedTask(task);
-    if (task.subtasks.length > 0) {
-      setSelectedSubtask(task.subtasks[0]);
-      if (task.subtasks[0].steps && task.subtasks[0].steps.length > 0) {
-        setSelectedStep(task.subtasks[0].steps[0]);
-      } else {
-        setSelectedStep(null);
+    // Clear previous subtask and step selections when switching tasks
+    setSelectedSubtask(null);
+    setSelectedStep(null);
+    
+    // Auto-select first subtask and step if available
+    if (task.subtasks && task.subtasks.length > 0) {
+      const firstSubtask = task.subtasks[0];
+      setSelectedSubtask(firstSubtask);
+      if (firstSubtask.steps && firstSubtask.steps.length > 0) {
+        setSelectedStep(firstSubtask.steps[0]);
       }
-    } else {
-      setSelectedSubtask(null);
-      setSelectedStep(null);
     }
   };
 
   const updateStepCompletion = (stepId: string, isCompleted: boolean, studentResponse?: string) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => ({
-        ...task,
-        subtasks: task.subtasks.map(subtask => ({
-          ...subtask,
-          steps: subtask.steps.map(step => 
-            step.id === stepId 
-              ? { 
-                  ...step, 
-                  isCompleted, 
-                  studentResponse: studentResponse || step.studentResponse 
-                }
-              : step
-          )
-        }))
-      }))
-    );
-
-    // Update the selected step if it's the one being updated
+    // Update the selected step directly
     if (selectedStep && selectedStep.id === stepId) {
       setSelectedStep(prev => prev ? {
         ...prev,

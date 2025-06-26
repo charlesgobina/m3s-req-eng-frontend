@@ -1,7 +1,9 @@
+// src/context/ChatContext.tsx - Updated with authentication
 import React, { createContext, useState, useRef, useContext, useEffect } from 'react';
 import { useTask } from './TaskContext';
 import { useProjectContext } from './ProjectContext';
-import { i, s } from 'framer-motion/client';
+import { useAuth } from './AuthContext';
+import { apiService } from '../services/apiService';
 
 export interface Message {
   id: string;
@@ -53,6 +55,10 @@ const ChatContext = createContext<ChatContextType>({
 export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
+  const { selectedTask, selectedSubtask, selectedStep, teamMembers } = useTask();
+  const { projectContext } = useProjectContext();
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState<string>('');
   const [submission, setSubmission] = useState<string>('');
@@ -65,13 +71,36 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion } = useTask();
-  const { projectContext } = useProjectContext();
-  
+
+  // Helper function to make authenticated streaming requests
+  const makeAuthenticatedStreamingRequest = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+    const token = localStorage.getItem('authToken');
+    
+    const defaultHeaders: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      defaultHeaders.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`http://localhost:3000${endpoint}`, {
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...options.headers,
+      },
+    });
+
+    return response;
+  };
+
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-  
+
+  // Clean up EventSource on unmount
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
@@ -79,167 +108,151 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
-  
-  useEffect(() => {
-    if (selectedSubtask) {
-      setMessages([]);
-      setValidationResult(null);
-      setSubmission('');
-    }
-  }, [selectedSubtask]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const sendMessage = async () => {
-    // console.log(inputMessage, selectedTask, selectedSubtask, selectedStep, isStreaming);
-    if (!inputMessage.trim() || !selectedTask || !selectedSubtask || !selectedStep || isStreaming) return;
+    if (!inputMessage.trim() || !selectedTask || !selectedStep || !isAuthenticated) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
-      content: inputMessage,
+      content: inputMessage.trim(),
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsStreaming(true);
 
     try {
-      const response = await fetch('https://m3s-req-eng.onrender.com/api/chat/stream', {
+      // Close existing EventSource if any
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
+      // Create the request payload
+      const requestPayload = {
+        message: inputMessage.trim(),
+        taskId: selectedTask.id,
+        subtask: selectedSubtask,
+        step: selectedStep,
+        sessionId: sessionId,
+        projectContext: projectContext,
+      };
+
+      // Make authenticated request to start streaming
+      const response = await makeAuthenticatedStreamingRequest('/api/chat/stream', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputMessage,
-          taskId: selectedTask.id,
-          subtask: selectedSubtask,
-          step: selectedStep,
-          sessionId,
-          projectContext,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start chat stream');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const reader = response?.body?.getReader();
+      // For streaming responses, we need to handle the response differently
+      const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        agentRole: '',
-      };
+      let assistantMessage = '';
+      let agentRole = '';
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-
-              if (data.type === 'agent_selected') {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, agentRole: data.agent }
-                      : msg
-                  )
-                );
-              } else if (data.type === 'content') {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? {
-                          ...msg,
-                          content: msg.content + data.content,
-                          agentRole: data.agent,
-                        }
-                      : msg
-                  )
-                );
-              } else if (data.type === 'error') {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, content: `Error: ${data.message}` }
-                      : msg
-                  )
-                );
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.type === 'start') {
+                  agentRole = data.agent;
+                } else if (data.type === 'content') {
+                  assistantMessage += data.content;
+                  
+                  // Update the last message in real-time
+                  setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessageIndex = newMessages.length - 1;
+                    
+                    if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
+                      newMessages[lastMessageIndex] = {
+                        ...newMessages[lastMessageIndex],
+                        content: assistantMessage,
+                      };
+                    } else {
+                      newMessages.push({
+                        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        role: 'assistant',
+                        content: assistantMessage,
+                        timestamp: new Date(),
+                        agentRole: agentRole,
+                      });
+                    }
+                    
+                    return newMessages;
+                  });
+                } else if (data.type === 'end') {
+                  break;
+                }
+              } catch (error) {
+                console.error('Error parsing SSE data:', error);
               }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
             }
           }
         }
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 2).toString(),
-          role: 'assistant',
-          content:
-            'Sorry, there was an error processing your message. Please try again.',
-          timestamp: new Date(),
-        },
-      ]);
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsStreaming(false);
     }
   };
 
   const validateSubmission = async () => {
-    if (!submission.trim() || !selectedTask || !selectedStep || isValidating) return;
+    if (!submission.trim() || !selectedTask || !selectedStep || !isAuthenticated) return;
 
     setIsValidating(true);
+    setValidationResult(null);
+
     try {
-      // https://m3s-req-eng.onrender.com
-      // http://localhost:3000/api/chat/stream
-      const response = await fetch(
-        'https://m3s-req-eng.onrender.com/api/validation/validate',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            submission,
-            taskId: selectedTask.id,
-            subtask: selectedSubtask,
-            step: selectedStep,
-            sessionId,
-            projectContext,
-          }),
-        }
-      );
+      const requestPayload = {
+        submission: submission.trim(),
+        taskId: selectedTask.id,
+        subtask: selectedSubtask,
+        step: selectedStep,
+        sessionId: sessionId,
+        projectContext: projectContext,
+      };
 
-      const result = await response.json();
-      setValidationResult(result);
+      const response = await apiService.authenticatedRequest('/api/validation/validate', {
+        method: 'POST',
+        body: JSON.stringify(requestPayload),
+      });
 
-      // If validation passed, update the step completion status
-      if (result.passed && selectedStep) {
-        updateStepCompletion(selectedStep.id, true, submission);
+      if (!response.success) {
+        throw new Error(response.error || 'Validation failed');
       }
+
+      setValidationResult(response.data);
     } catch (error) {
       console.error('Error validating submission:', error);
       setValidationResult({
         score: 0,
-        feedback: 'Error validating submission. Please try again.',
+        feedback: 'Validation failed. Please try again.',
         recommendations: '',
         passed: false,
       });
