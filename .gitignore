@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Explainers
+learn_persistence.md
+workflow.md
