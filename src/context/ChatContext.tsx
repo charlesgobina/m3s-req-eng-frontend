@@ -1,7 +1,11 @@
+// src/context/ChatContext.tsx - Updated with authentication
 import React, { createContext, useState, useRef, useContext, useEffect } from 'react';
 import { useTask } from './TaskContext';
-import { useProjectContext } from './ProjectContext';
-import { i, s } from 'framer-motion/client';
+// import { useProjectContext } from './ProjectContext';
+import { useAuth } from './AuthContext';
+import { apiService } from '../services/apiService';
+import { firestoreService, ChatMessage as FirestoreChatMessage } from '../services/firestoreService';
+import { Timestamp } from 'firebase/firestore';
 
 export interface Message {
   id: string;
@@ -26,6 +30,7 @@ interface ChatContextType {
   setSubmission: (submission: string) => void;
   isStreaming: boolean;
   validationResult: ValidationResult | null;
+  setValidationResult: (result: ValidationResult | null) => void;
   isValidating: boolean;
   sendMessage: () => Promise<void>;
   validateSubmission: () => Promise<void>;
@@ -42,6 +47,7 @@ const ChatContext = createContext<ChatContextType>({
   setSubmission: () => {},
   isStreaming: false,
   validationResult: null,
+  setValidationResult: () => {},
   isValidating: false,
   sendMessage: async () => {},
   validateSubmission: async () => {},
@@ -53,7 +59,12 @@ const ChatContext = createContext<ChatContextType>({
 export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { isAuthenticated, user } = useAuth();
+  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion } = useTask();
+  // const { projectContext } = useProjectContext();
+  
+  // Store messages per step
+  const [stepMessages, setStepMessages] = useState<Record<string, Message[]>>({});
   const [inputMessage, setInputMessage] = useState<string>('');
   const [submission, setSubmission] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
@@ -65,13 +76,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion } = useTask();
-  const { projectContext } = useProjectContext();
-  
+
+  // Get current step's messages
+  const messages = selectedStep ? (stepMessages[selectedStep.id] || []) : [];
+
+
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-  
+
+  // Clean up EventSource on unmount
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
@@ -79,167 +94,387 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
-  
-  useEffect(() => {
-    if (selectedSubtask) {
-      setMessages([]);
-      setValidationResult(null);
-      setSubmission('');
-    }
-  }, [selectedSubtask]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Load chat messages from Firestore when step changes
+  useEffect(() => {
+    const loadStepMessages = async () => {
+      if (selectedTask && selectedSubtask && selectedStep && isAuthenticated && user?.id) {
+        const stepId = selectedStep.id;
+        
+        // Check if we already have messages for this step in memory
+        if (stepMessages[stepId]) {
+          return; // Messages already loaded
+        }
+
+        try {
+          // Load user progress from Firestore
+          const userProgress = await firestoreService.getUserTaskProgress(user.id, selectedTask.id);
+          
+          if (userProgress && userProgress.subtasks[selectedSubtask.id]?.steps[stepId]?.chatMessages) {
+            const firestoreMessages = userProgress.subtasks[selectedSubtask.id].steps[stepId].chatMessages;
+            
+            if (firestoreMessages.length > 0) {
+              // Convert Firestore messages to UI messages
+              const uiMessages: Message[] = firestoreMessages.map(msg => ({
+                id: msg.id,
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp instanceof Date ? msg.timestamp : msg.timestamp.toDate(),
+                agentRole: msg.agentRole
+              }));
+
+              setStepMessages(prev => ({
+                ...prev,
+                [stepId]: uiMessages
+              }));
+            } else {
+              // No messages yet, add initial welcome message
+              const initialMessage: Message = {
+                id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                role: 'assistant',
+                content: `Welcome to the task "${selectedTask.name}". How can I assist you with step "${selectedStep.objective}"?`,
+                timestamp: new Date(),
+              };
+              
+              setStepMessages(prev => ({
+                ...prev,
+                [stepId]: [initialMessage]
+              }));
+
+              // Save initial message to Firestore
+              await firestoreService.addChatMessage(
+                user.id,
+                selectedTask.id,
+                selectedSubtask.id,
+                stepId,
+                {
+                  id: initialMessage.id,
+                  role: initialMessage.role,
+                  content: initialMessage.content
+                  // Don't include agentRole if it's undefined
+                }
+              );
+            }
+          } else {
+            // No messages yet, add initial welcome message
+            const initialMessage: Message = {
+              id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              role: 'assistant',
+              content: `Welcome to the task "${selectedTask.name}". How can I assist you with step "${selectedStep.objective}"?`,
+              timestamp: new Date(),
+            };
+            
+            setStepMessages(prev => ({
+              ...prev,
+              [stepId]: [initialMessage]
+            }));
+
+            // Save initial message to Firestore
+            await firestoreService.addChatMessage(
+              user.id,
+              selectedTask.id,
+              selectedSubtask.id,
+              stepId,
+              {
+                id: initialMessage.id,
+                role: initialMessage.role,
+                content: initialMessage.content
+                // Don't include agentRole if it's undefined
+              }
+            );
+          }
+        } catch (error) {
+          console.error('Failed to load step messages:', error);
+          
+          // Fallback: add initial message in memory only
+          const initialMessage: Message = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            role: 'assistant',
+            content: `Welcome to the task "${selectedTask.name}". How can I assist you with step "${selectedStep.objective}"?`,
+            timestamp: new Date(),
+          };
+          
+          setStepMessages(prev => ({
+            ...prev,
+            [stepId]: [initialMessage]
+          }));
+        }
+      }
+    };
+
+    loadStepMessages();
+  }, [selectedTask, selectedSubtask, selectedStep, isAuthenticated, user]);
 
   const sendMessage = async () => {
-    // console.log(inputMessage, selectedTask, selectedSubtask, selectedStep, isStreaming);
-    if (!inputMessage.trim() || !selectedTask || !selectedSubtask || !selectedStep || isStreaming) return;
+    if (!inputMessage.trim() || !selectedTask || !selectedStep || !isAuthenticated) return;
+    
+    // Don't allow sending messages on completed steps
+    if (selectedStep.isCompleted) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
-      content: inputMessage,
+      content: inputMessage.trim(),
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const stepId = selectedStep.id;
+    setStepMessages(prev => ({
+      ...prev,
+      [stepId]: [...(prev[stepId] || []), userMessage]
+    }));
     setInputMessage('');
     setIsStreaming(true);
 
+    // Save user message to Firestore
+    if (user?.id && selectedSubtask) {
+      try {
+        console.log('💬 Saving user message to Firestore:', userMessage.content);
+        await firestoreService.addChatMessage(
+          user.id,
+          selectedTask.id,
+          selectedSubtask.id,
+          stepId,
+          {
+            id: userMessage.id,
+            role: userMessage.role,
+            content: userMessage.content
+            // Don't include agentRole for user messages (it's always undefined)
+          }
+        );
+        console.log('✅ User message saved successfully');
+      } catch (error) {
+        console.error('❌ Failed to save user message to Firestore:', error);
+      }
+    }
+
     try {
-      const response = await fetch('https://m3s-req-eng.onrender.com/api/chat/stream', {
+      const stepId = selectedStep.id;
+      
+      // Close existing EventSource if any
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
+      // Create the request payload
+      const requestPayload = {
+        message: inputMessage.trim(),
+        taskId: selectedTask.id,
+        subtask: selectedSubtask,
+        step: selectedStep,
+        sessionId: sessionId,
+        // projectContext: projectContext,
+      };
+
+      // Make authenticated request to start streaming using apiService
+      const token = localStorage.getItem('authToken');
+      
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch('http://localhost:3000/api/chat/stream', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputMessage,
-          taskId: selectedTask.id,
-          subtask: selectedSubtask,
-          step: selectedStep,
-          sessionId,
-          projectContext,
-        }),
+        headers,
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start chat stream');
+        // Handle auth errors like apiService does
+        if (response.status === 401) {
+          console.log('401 Unauthorized - clearing auth data');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          throw new Error('Authentication failed. Please log in again.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const reader = response?.body?.getReader();
+      // For streaming responses, we need to handle the response differently
+      const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        agentRole: '',
-      };
+      let assistantMessage = '';
+      let agentRole = '';
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-
-              if (data.type === 'agent_selected') {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, agentRole: data.agent }
-                      : msg
-                  )
-                );
-              } else if (data.type === 'content') {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? {
-                          ...msg,
-                          content: msg.content + data.content,
-                          agentRole: data.agent,
-                        }
-                      : msg
-                  )
-                );
-              } else if (data.type === 'error') {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, content: `Error: ${data.message}` }
-                      : msg
-                  )
-                );
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.type === 'start') {
+                  agentRole = data.agent;
+                } else if (data.type === 'content') {
+                  assistantMessage += data.content;
+                  
+                  // Update the last message in real-time for current step
+                  setStepMessages(prev => {
+                    const currentStepMessages = [...(prev[stepId] || [])];
+                    const lastMessageIndex = currentStepMessages.length - 1;
+                    
+                    if (lastMessageIndex >= 0 && currentStepMessages[lastMessageIndex].role === 'assistant') {
+                      currentStepMessages[lastMessageIndex] = {
+                        ...currentStepMessages[lastMessageIndex],
+                        content: assistantMessage,
+                      };
+                    } else {
+                      currentStepMessages.push({
+                        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        role: 'assistant',
+                        content: assistantMessage,
+                        timestamp: new Date(),
+                        agentRole: agentRole,
+                      });
+                    }
+                    
+                    return {
+                      ...prev,
+                      [stepId]: currentStepMessages
+                    };
+                  });
+                } else if (data.type === 'end') {
+                  break;
+                }
+              } catch (error) {
+                console.error('Error parsing SSE data:', error);
               }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
             }
           }
         }
       }
+
+      // Save final assistant message to Firestore
+      if (assistantMessage && user?.id && selectedSubtask) {
+        try {
+          console.log('🤖 Saving assistant message to Firestore:', assistantMessage.substring(0, 50) + '...');
+          const assistantMessageData: any = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            role: 'assistant',
+            content: assistantMessage
+          };
+          
+          // Only include agentRole if it's defined and not empty
+          if (agentRole && agentRole.trim()) {
+            assistantMessageData.agentRole = agentRole;
+          }
+          
+          await firestoreService.addChatMessage(
+            user.id,
+            selectedTask.id,
+            selectedSubtask.id,
+            stepId,
+            assistantMessageData
+          );
+          console.log('✅ Assistant message saved successfully');
+        } catch (error) {
+          console.error('❌ Failed to save assistant message to Firestore:', error);
+        }
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 2).toString(),
-          role: 'assistant',
-          content:
-            'Sorry, there was an error processing your message. Please try again.',
-          timestamp: new Date(),
-        },
-      ]);
+      
+      // Add error message to current step
+      const errorMessage: Message = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      
+      if (selectedStep) {
+        setStepMessages(prev => ({
+          ...prev,
+          [selectedStep.id]: [...(prev[selectedStep.id] || []), errorMessage]
+        }));
+      }
     } finally {
       setIsStreaming(false);
     }
   };
 
   const validateSubmission = async () => {
-    if (!submission.trim() || !selectedTask || !selectedStep || isValidating) return;
+    console.log('🚀 validateSubmission called');
+    
+    if (!submission.trim() || !selectedTask || !selectedStep || !isAuthenticated) {
+      console.log('❌ Validation blocked - missing requirements:', {
+        hasSubmission: !!submission.trim(),
+        hasSelectedTask: !!selectedTask,
+        hasSelectedStep: !!selectedStep,
+        isAuthenticated
+      });
+      return;
+    }
 
+    console.log('✅ Validation starting for step:', selectedStep.id);
     setIsValidating(true);
+    setValidationResult(null);
+
     try {
-      // https://m3s-req-eng.onrender.com
-      // http://localhost:3000/api/chat/stream
-      const response = await fetch(
-        'https://m3s-req-eng.onrender.com/api/validation/validate',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            submission,
-            taskId: selectedTask.id,
-            subtask: selectedSubtask,
-            step: selectedStep,
-            sessionId,
-            projectContext,
-          }),
-        }
-      );
+      const requestPayload = {
+        submission: submission.trim(),
+        taskId: selectedTask.id,
+        subtask: selectedSubtask,
+        step: selectedStep,
+        sessionId: sessionId,
+        // projectContext: projectContext,
+      };
 
-      const result = await response.json();
-      setValidationResult(result);
+      console.log('Validation request payload:', requestPayload);
+      console.log('Auth token exists:', !!localStorage.getItem('authToken'));
+      console.log('Auth token value:', localStorage.getItem('authToken'));
+      console.log('Is authenticated:', isAuthenticated);
 
-      // If validation passed, update the step completion status
-      if (result.passed && selectedStep) {
-        updateStepCompletion(selectedStep.id, true, submission);
+      console.log('🔄 Making validation API request...');
+      const response = await apiService.authenticatedRequest('/api/validation/validate', {
+        method: 'POST',
+        body: JSON.stringify(requestPayload),
+      }, true); // Skip auth token clearing for validation requests
+
+      console.log('📥 Validation API response received:', response);
+
+      if (!response.success) {
+        // Use the actual error from the server, not a generic message
+        setValidationResult({
+          score: 0,
+          feedback: response.error || 'Validation failed. Please try again.',
+          recommendations: '',
+          passed: false,
+        });
+        return;
+      }
+
+      setValidationResult(response.data);
+      
+      // If validation passed, update step completion
+      console.log('🔍 Validation response:', {
+        hasData: !!response.data,
+        passed: response.data?.passed,
+        hasSelectedStep: !!selectedStep,
+        selectedStepId: selectedStep?.id
+      });
+      
+      if (response.data && response.data.passed && selectedStep) {
+        console.log('✅ Validation passed, calling updateStepCompletion');
+        await updateStepCompletion(selectedStep.id, true, submission.trim());
+      } else {
+        console.log('❌ Validation did not pass or missing requirements');
       }
     } catch (error) {
       console.error('Error validating submission:', error);
       setValidationResult({
         score: 0,
-        feedback: 'Error validating submission. Please try again.',
+        feedback: `Network error: ${error instanceof Error ? error.message : 'Please try again.'}`,
         recommendations: '',
         passed: false,
       });
@@ -273,6 +508,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSubmission,
         isStreaming,
         validationResult,
+        setValidationResult,
         isValidating,
         sendMessage,
         validateSubmission,

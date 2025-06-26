@@ -69,13 +69,20 @@ const StepNavigation = memo(({
   currentStepIndex: number; 
   onStepChange: (index: number) => void;
 }) => {
+  const { isStepAccessible, getStepStatus } = useTask();
+  
   if (steps.length <= 1) return null;
 
   return (
     <div className="flex items-center justify-between p-3 bg-slate-50 border-b border-slate-200">
       <button
-        onClick={() => onStepChange(Math.max(0, currentStepIndex - 1))}
-        disabled={currentStepIndex === 0}
+        onClick={() => {
+          const prevIndex = Math.max(0, currentStepIndex - 1);
+          if (prevIndex >= 0 && isStepAccessible(steps[prevIndex].id)) {
+            onStepChange(prevIndex);
+          }
+        }}
+        disabled={currentStepIndex === 0 || !isStepAccessible(steps[Math.max(0, currentStepIndex - 1)]?.id)}
         className="flex items-center px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronLeft size={14} className="mr-1" />
@@ -83,30 +90,41 @@ const StepNavigation = memo(({
       </button>
 
       <div className="flex items-center space-x-1">
-        {steps.map((step, index) => (
-          <button
-            key={step.id}
-            onClick={() => onStepChange(index)}
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-              index === currentStepIndex
-                ? 'bg-purple-600 text-white'
-                : step.isCompleted
-                ? 'bg-green-500 text-white'
-                : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-            }`}
-          >
-            {step.isCompleted ? (
-              <CheckCircle size={12} />
-            ) : (
-              index + 1
-            )}
-          </button>
-        ))}
+        {steps.map((step, index) => {
+          const stepStatus = getStepStatus(step.id);
+          const accessible = isStepAccessible(step.id);
+          
+          return (
+            <button
+              key={step.id}
+              onClick={() => accessible ? onStepChange(index) : null}
+              disabled={!accessible}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+                stepStatus === 'current'
+                  ? 'bg-purple-600 text-white'
+                  : stepStatus === 'completed'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
+              }`}
+            >
+              {stepStatus === 'completed' ? (
+                <CheckCircle size={12} />
+              ) : (
+                index + 1
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <button
-        onClick={() => onStepChange(Math.min(steps.length - 1, currentStepIndex + 1))}
-        disabled={currentStepIndex === steps.length - 1}
+        onClick={() => {
+          const nextIndex = Math.min(steps.length - 1, currentStepIndex + 1);
+          if (nextIndex < steps.length && isStepAccessible(steps[nextIndex].id)) {
+            onStepChange(nextIndex);
+          }
+        }}
+        disabled={currentStepIndex === steps.length - 1 || !isStepAccessible(steps[Math.min(steps.length - 1, currentStepIndex + 1)]?.id)}
         className="flex items-center px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         Next
@@ -139,6 +157,9 @@ const StepCard = memo(({
   validationResult: any;
   handleNextClick: () => void;
 }) => {
+  const { getStepStatus, isStepAccessible } = useTask();
+  const stepStatus = getStepStatus(step.id);
+  const accessible = isStepAccessible(step.id);
   const isCompleted = step.isCompleted;
   const hasValidResponse = step.studentResponse && step.studentResponse.trim();
 
@@ -154,19 +175,23 @@ const StepCard = memo(({
       {/* Main Step Card */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className={`rounded-lg border p-4 mb-4 ${
-          isCompleted 
+          stepStatus === 'completed'
             ? 'bg-green-50 border-green-200' 
-            : 'bg-slate-50 border-slate-200'
+            : stepStatus === 'current'
+            ? 'bg-purple-50 border-purple-200'
+            : 'bg-slate-100 border-slate-300 opacity-75'
         }`}>
           {/* Step Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
-                isCompleted 
+                stepStatus === 'completed'
                   ? 'bg-green-500 text-white' 
-                  : 'bg-purple-100 text-purple-600'
+                  : stepStatus === 'current'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-slate-400 text-white'
               }`}>
-                {isCompleted ? (
+                {stepStatus === 'completed' ? (
                   <CheckCircle size={16} />
                 ) : (
                   <span className="font-bold text-sm">{stepIndex + 1}</span>
@@ -219,13 +244,19 @@ const StepCard = memo(({
           {!isCompleted && (
             <div>
               <h4 className="font-medium text-slate-800 mb-2 text-sm">Your Response</h4>
-              <textarea
-                value={submission}
-                onChange={(e) => setSubmission(e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e, true)}
-                placeholder="Write your solution here..."
-                className="w-full min-h-[120px] p-3 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm"
-              />
+              {stepStatus === 'locked' ? (
+                <div className="w-full min-h-[120px] p-3 border border-slate-300 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <p className="text-slate-500 text-sm">Complete previous steps to unlock this step</p>
+                </div>
+              ) : (
+                <textarea
+                  value={submission}
+                  onChange={(e) => setSubmission(e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, true)}
+                  placeholder="Write your solution here..."
+                  className="w-full min-h-[120px] p-3 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm"
+                />
+              )}
             </div>
           )}
         </div>
@@ -236,12 +267,16 @@ const StepCard = memo(({
         {!isCompleted ? (
           <motion.button
             onClick={validateSubmission}
-            disabled={!submission.trim() || isValidating}
+            disabled={!submission.trim() || isValidating || stepStatus === 'locked'}
             className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium text-sm"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            {isValidating ? (
+            {stepStatus === 'locked' ? (
+              <>
+                🔒 Step Locked
+              </>
+            ) : isValidating ? (
               <>
                 <Loader2 size={16} className="animate-spin mr-2" />
                 Validating...
@@ -279,10 +314,11 @@ const ExerciseContent = memo(() => {
     validateSubmission, 
     isValidating, 
     handleKeyPress,
-    validationResult
+    validationResult,
+    setValidationResult
   } = useChat();
   
-  const { selectedTask, selectedSubtask, selectedStep, navigateToNext, setSelectedStep } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, navigateToNext, setSelectedStep, isStepAccessible, tasks } = useTask();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   // Update current step index when selectedStep changes
@@ -297,17 +333,29 @@ const ExerciseContent = memo(() => {
 
   const handleStepChange = (index: number) => {
     if (selectedSubtask && selectedSubtask.steps[index]) {
+      const newStep = selectedSubtask.steps[index];
+      
+      // Only allow navigation to accessible steps
+      if (!isStepAccessible(newStep.id)) {
+        return;
+      }
+      
       setCurrentStepIndex(index);
-      setSelectedStep(selectedSubtask.steps[index]);
+      setSelectedStep(newStep);
+      // Only clear submission and validation result for new (uncompleted) steps
+      if (!newStep.isCompleted) {
+        setSubmission('');
+        setValidationResult(null);
+      }
     }
   };
 
   const handleNextStep = () => {
-    if (selectedSubtask && currentStepIndex < selectedSubtask.steps.length - 1) {
-      handleStepChange(currentStepIndex + 1);
-    } else {
-      navigateToNext();
-    }
+    // Always use navigateToNext from TaskContext for proper position tracking
+    // Clear submission and validation result before navigating
+    setSubmission('');
+    setValidationResult(null);
+    navigateToNext();
   };
 
   if (!selectedTask || !selectedSubtask || !selectedStep) {
@@ -328,7 +376,15 @@ const ExerciseContent = memo(() => {
     return null;
   }
 
-  const steps = selectedSubtask.steps || [];
+  // Get steps from the main tasks array (same source as status functions)
+  const steps = (() => {
+    if (!selectedTask || !selectedSubtask) return [];
+    const currentTask = tasks.find(task => task.id === selectedTask.id);
+    if (!currentTask) return selectedSubtask.steps || [];
+    const currentSubtask = currentTask.subtasks.find(subtask => subtask.id === selectedSubtask.id);
+    return currentSubtask?.steps || [];
+  })();
+  
   const currentStep = steps[currentStepIndex];
 
   if (!currentStep) {
