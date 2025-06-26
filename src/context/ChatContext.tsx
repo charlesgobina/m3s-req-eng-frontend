@@ -1,9 +1,11 @@
-// src/context/ChatContext.tsx - Updated with authentication
+// src/context/ChatContext.tsx - Updated with hybrid chat architecture
 import React, { createContext, useState, useRef, useContext, useEffect } from 'react';
 import { useTask } from './TaskContext';
 // import { useProjectContext } from './ProjectContext';
 import { useAuth } from './AuthContext';
 import { apiService } from '../services/apiService';
+import { chatService, UIMessage as ChatUIMessage } from '../services/chatService';
+// Keep firestoreService for backwards compatibility during migration
 import { firestoreService, ChatMessage as FirestoreChatMessage } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
 
@@ -95,7 +97,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Load chat messages from Firestore when step changes
+  // Load chat messages from new ChatService when step changes
   useEffect(() => {
     const loadStepMessages = async () => {
       if (selectedTask && selectedSubtask && selectedStep && isAuthenticated && user?.id) {
@@ -103,91 +105,71 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check if we already have messages for this step in memory
         if (stepMessages[stepId]) {
+          console.log('💬 Messages already loaded for step:', stepId);
           return; // Messages already loaded
         }
 
         try {
-          // Load user progress from Firestore
-          const userProgress = await firestoreService.getUserTaskProgress(user.id, selectedTask.id);
+          console.log('📥 Loading chat messages from ChatService for step:', stepId);
           
-          if (userProgress && userProgress.subtasks[selectedSubtask.id]?.steps[stepId]?.chatMessages) {
-            const firestoreMessages = userProgress.subtasks[selectedSubtask.id].steps[stepId].chatMessages;
+          // Load messages from new chat service
+          const chatMessages = await chatService.getChatMessages(
+            user.id,
+            selectedTask.id,
+            selectedSubtask.id,
+            stepId
+          );
+          
+          if (chatMessages.length > 0) {
+            // Messages found, convert to internal Message format
+            const uiMessages: Message[] = chatMessages.map(msg => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp, // Already a Date from ChatService
+              agentRole: msg.agentRole
+            }));
+
+            setStepMessages(prev => ({
+              ...prev,
+              [stepId]: uiMessages
+            }));
             
-            if (firestoreMessages.length > 0) {
-              // Convert Firestore messages to UI messages
-              const uiMessages: Message[] = firestoreMessages.map(msg => ({
-                id: msg.id,
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp instanceof Date ? msg.timestamp : msg.timestamp.toDate(),
-                agentRole: msg.agentRole
-              }));
-
-              setStepMessages(prev => ({
-                ...prev,
-                [stepId]: uiMessages
-              }));
-            } else {
-              // No messages yet, add initial welcome message
-              const initialMessage: Message = {
-                id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                role: 'assistant',
-                content: `Welcome to the task "${selectedTask.name}". How can I assist you with step "${selectedStep.objective}"?`,
-                timestamp: new Date(),
-              };
-              
-              setStepMessages(prev => ({
-                ...prev,
-                [stepId]: [initialMessage]
-              }));
-
-              // Save initial message to Firestore
-              await firestoreService.addChatMessage(
-                user.id,
-                selectedTask.id,
-                selectedSubtask.id,
-                stepId,
-                {
-                  id: initialMessage.id,
-                  role: initialMessage.role,
-                  content: initialMessage.content
-                  // Don't include agentRole if it's undefined
-                }
-              );
-            }
+            console.log(`✅ Loaded ${uiMessages.length} messages from ChatService`);
           } else {
-            // No messages yet, add initial welcome message
+            // No messages found, create initial welcome message
+            console.log('👋 No messages found, creating welcome message');
+            
+            const welcomeMessage = await chatService.createInitialWelcomeMessage(
+              user.id,
+              selectedTask.id,
+              selectedSubtask.id,
+              stepId,
+              selectedTask.name,
+              selectedStep.objective
+            );
+            
+            // Convert to internal Message format
             const initialMessage: Message = {
-              id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              role: 'assistant',
-              content: `Welcome to the task "${selectedTask.name}". How can I assist you with step "${selectedStep.objective}"?`,
-              timestamp: new Date(),
+              id: welcomeMessage.id,
+              role: welcomeMessage.role,
+              content: welcomeMessage.content,
+              timestamp: welcomeMessage.timestamp,
+              agentRole: welcomeMessage.agentRole
             };
             
             setStepMessages(prev => ({
               ...prev,
               [stepId]: [initialMessage]
             }));
-
-            // Save initial message to Firestore
-            await firestoreService.addChatMessage(
-              user.id,
-              selectedTask.id,
-              selectedSubtask.id,
-              stepId,
-              {
-                id: initialMessage.id,
-                role: initialMessage.role,
-                content: initialMessage.content
-                // Don't include agentRole if it's undefined
-              }
-            );
+            
+            console.log('✅ Created and saved initial welcome message');
           }
         } catch (error) {
-          console.error('Failed to load step messages:', error);
+          console.error('❌ Failed to load step messages from ChatService:', error);
           
-          // Fallback: add initial message in memory only
-          const initialMessage: Message = {
+          // Fallback: add initial message in memory only (no save)
+          const fallbackMessage: Message = {
             id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: 'assistant',
             content: `Welcome to the task "${selectedTask.name}". How can I assist you with step "${selectedStep.objective}"?`,
@@ -196,8 +178,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           setStepMessages(prev => ({
             ...prev,
-            [stepId]: [initialMessage]
+            [stepId]: [fallbackMessage]
           }));
+          
+          console.log('🆘 Used fallback message due to ChatService error');
         }
       }
     };
@@ -226,11 +210,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setInputMessage('');
     setIsStreaming(true);
 
-    // Save user message to Firestore
+    // Save user message to ChatService
     if (user?.id && selectedSubtask) {
       try {
-        console.log('💬 Saving user message to Firestore:', userMessage.content);
-        await firestoreService.addChatMessage(
+        console.log('💬 Saving user message to ChatService:', userMessage.content.substring(0, 50) + '...');
+        await chatService.addChatMessage(
           user.id,
           selectedTask.id,
           selectedSubtask.id,
@@ -242,9 +226,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Don't include agentRole for user messages (it's always undefined)
           }
         );
-        console.log('✅ User message saved successfully');
+        console.log('✅ User message saved successfully to ChatService');
       } catch (error) {
-        console.error('❌ Failed to save user message to Firestore:', error);
+        console.error('❌ Failed to save user message to ChatService:', error);
+        // Note: Message still appears in UI due to optimistic update above
       }
     }
 
@@ -354,10 +339,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Save final assistant message to Firestore
+      // Save final assistant message to ChatService
       if (assistantMessage && user?.id && selectedSubtask) {
         try {
-          console.log('🤖 Saving assistant message to Firestore:', assistantMessage.substring(0, 50) + '...');
+          console.log('🤖 Saving assistant message to ChatService:', assistantMessage.substring(0, 50) + '...');
           const assistantMessageData: any = {
             id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: 'assistant',
@@ -369,16 +354,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             assistantMessageData.agentRole = agentRole;
           }
           
-          await firestoreService.addChatMessage(
+          await chatService.addChatMessage(
             user.id,
             selectedTask.id,
             selectedSubtask.id,
             stepId,
             assistantMessageData
           );
-          console.log('✅ Assistant message saved successfully');
+          console.log('✅ Assistant message saved successfully to ChatService');
         } catch (error) {
-          console.error('❌ Failed to save assistant message to Firestore:', error);
+          console.error('❌ Failed to save assistant message to ChatService:', error);
+          // Note: Message still appears in UI due to real-time streaming update above
         }
       }
     } catch (error) {
