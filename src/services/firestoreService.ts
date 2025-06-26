@@ -20,7 +20,9 @@ export interface ChatMessage {
 }
 
 export interface FirestoreStep extends Steps {
-  chatMessages: ChatMessage[];
+  // New hybrid format: no chatMessages array, only summary fields
+  chatMessageCount: number;
+  lastChatAt: Timestamp | null;
   lastActivityAt?: Timestamp;
 }
 
@@ -82,7 +84,9 @@ export class FirestoreService {
         subtask.steps.forEach(step => {
           firestoreSteps[step.id] = {
             ...step,
-            chatMessages: [],
+            // New hybrid format: no chatMessages array, only summary fields
+            chatMessageCount: 0,
+            lastChatAt: null,
             lastActivityAt: serverTimestamp() as Timestamp
           };
         });
@@ -165,7 +169,8 @@ export class FirestoreService {
     }
   }
 
-  // Add chat message to step
+  // DEPRECATED: Old addChatMessage method - now handled by ChatService
+  // This method is kept for backwards compatibility but should not be used
   async addChatMessage(
     userId: string,
     taskId: string,
@@ -173,37 +178,23 @@ export class FirestoreService {
     stepId: string,
     message: Omit<ChatMessage, 'timestamp'> & { timestamp?: Timestamp }
   ): Promise<void> {
-    console.log('🔥 FirestoreService: Adding chat message', { userId, taskId, subtaskId, stepId, message });
+    console.warn('⚠️ FirestoreService.addChatMessage is deprecated. Use ChatService.addChatMessage instead.');
+    
+    // For now, we'll just update the chat summary in the main document
     try {
-      // Clean the message object and remove undefined values
-      const cleanMessage: ChatMessage = {
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        timestamp: message.timestamp || new Date() as any as Timestamp,
-        ...(message.agentRole && { agentRole: message.agentRole }) // Only include agentRole if it's defined
-      };
-
-      // Validate that all required fields are present
-      if (!cleanMessage.id || !cleanMessage.role || !cleanMessage.content) {
-        throw new Error('Message missing required fields');
-      }
-
-      console.log('🔥 FirestoreService: Clean message object:', cleanMessage);
-
       const docRef = doc(db, 'user_progress', userId, 'tasks', taskId);
       
       const updateData = {
-        [`subtasks.${subtaskId}.steps.${stepId}.chatMessages`]: arrayUnion(cleanMessage),
+        [`subtasks.${subtaskId}.steps.${stepId}.chatMessageCount`]: 1, // Just increment by 1
+        [`subtasks.${subtaskId}.steps.${stepId}.lastChatAt`]: serverTimestamp(),
         [`subtasks.${subtaskId}.steps.${stepId}.lastActivityAt`]: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
       
-      console.log('🔥 FirestoreService: Updating document with:', updateData);
       await updateDoc(docRef, updateData);
-      console.log('✅ FirestoreService: Successfully added chat message');
+      console.log('✅ FirestoreService: Updated chat summary (deprecated method)');
     } catch (error) {
-      console.error('Error adding chat message:', error);
+      console.error('Error updating chat summary:', error);
       throw error;
     }
   }
