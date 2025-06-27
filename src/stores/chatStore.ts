@@ -281,7 +281,7 @@ export const useChatStore = create<ChatStore>()(
           headers.Authorization = `Bearer ${token}`;
         }
 
-        const response = await fetch('http://localhost:3000/api/chat/stream', {
+        const response = await fetch('https://m3s-req-eng.onrender.com/api/chat/stream', {
           method: 'POST',
           headers,
           body: JSON.stringify(requestPayload),

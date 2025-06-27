@@ -8,7 +8,7 @@ interface ConnectionStatusProps {
 }
 
 const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ 
-  serverUrl = 'http://localhost:3000',
+  serverUrl = 'https://m3s-req-eng.onrender.com',
   className = ''
 }) => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
