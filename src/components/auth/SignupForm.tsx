@@ -12,7 +12,7 @@ import ConnectionStatus from './ConnectionStatus';
 
 const SignupForm: React.FC = () => {
   const navigate = useNavigate();
-  const { signup, isLoading } = useAuth();
+  const { signup, isReqLoading } = useAuth();
   const { error, errorType, isError, clearError } = useErrorHandler();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -76,7 +76,7 @@ const SignupForm: React.FC = () => {
       const result = await signup(values);
       
       if (result.success) {
-        navigate('/', { replace: true });
+        navigate('/login', { replace: true });
       } else if (result.error) {
         setSubmitError(result.error);
       }
@@ -199,7 +199,7 @@ const SignupForm: React.FC = () => {
                           : 'border-slate-300 focus:ring-green-500'
                       }`}
                       placeholder="First name"
-                      disabled={isLoading}
+                      disabled={isReqLoading}
                     />
                   </div>
                   {touched.firstName && errors.firstName && (
@@ -225,7 +225,7 @@ const SignupForm: React.FC = () => {
                           : 'border-slate-300 focus:ring-green-500'
                       }`}
                       placeholder="Last name"
-                      disabled={isLoading}
+                      disabled={isReqLoading}
                     />
                   </div>
                   {touched.lastName && errors.lastName && (
@@ -253,7 +253,7 @@ const SignupForm: React.FC = () => {
                         : 'border-slate-300 focus:ring-green-500'
                     }`}
                     placeholder="Enter your email"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                   />
                 </div>
                 {touched.email && errors.email && (
@@ -328,13 +328,13 @@ const SignupForm: React.FC = () => {
                         : 'border-slate-300 focus:ring-green-500'
                     }`}
                     placeholder="Create a password"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
@@ -362,13 +362,13 @@ const SignupForm: React.FC = () => {
                         : 'border-slate-300 focus:ring-green-500'
                     }`}
                     placeholder="Confirm your password"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    disabled={isLoading}
+                    disabled={isReqLoading}
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
@@ -380,12 +380,12 @@ const SignupForm: React.FC = () => {
 
               <motion.button
                 type="submit"
-                disabled={isLoading}
+                disabled={isReqLoading}
                 className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 sm:py-3 px-4 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm sm:text-base"
-                whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                whileHover={{ scale: isReqLoading ? 1 : 1.02 }}
+                whileTap={{ scale: isReqLoading ? 1 : 0.98 }}
               >
-                {isLoading ? (
+                {isReqLoading ? (
                   <div className="flex items-center justify-center">
                     <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mr-2" />
                     Creating Account...

@@ -36,9 +36,15 @@ export interface Task {
 
 export interface TeamMember {
   id: string;
-  name: string;
   role: string;
-  avatar?: string;
+  name: string;
+  personality: string;
+  expertise: string[];
+  communicationStyle: string;
+  workApproach: string;
+  preferredFrameworks: string[];
+  detailedPersona: string;
+  imageUrl?: string;
 }
 
 interface TaskContextType {
@@ -55,6 +61,7 @@ interface TaskContextType {
   isStepAccessible: (stepId: string) => boolean;
   getStepStatus: (stepId: string) => 'completed' | 'current' | 'locked';
   getFurthestProgress: () => { subtaskId: string | null; stepId: string | null };
+  getCurrentAgent: () => TeamMember | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -73,6 +80,7 @@ const TaskContext = createContext<TaskContextType>({
   isStepAccessible: () => false,
   getStepStatus: () => 'locked',
   getFurthestProgress: () => ({ subtaskId: null, stepId: null }),
+  getCurrentAgent: () => null,
   isLoading: false,
   error: null,
 });
@@ -130,12 +138,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
 
       // Now try to load user progress from Firestore and merge
-      console.log('🔍 Current user:', user);
+      // console.log('🔍 Current user:', user);
       const tasksWithProgress = await Promise.all(
         safeTasks.map(async (task: Task) => {
           try {
             if (user?.id) {
-              console.log(`🔍 Loading progress for user ${user.id}, task ${task.id}`);
+              // console.log(`🔍 Loading progress for user ${user.id}, task ${task.id}`);
               const userProgress = await firestoreService.getUserTaskProgress(user.id, task.id);
               
               if (userProgress) {
@@ -143,7 +151,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return FirestoreService.convertToTaskFormat(userProgress);
               } else {
                 // Initialize in Firestore for first time
-                console.log(`🔥 Initializing Firestore for user ${user.id}, task ${task.id}`);
+                // console.log(`🔥 Initializing Firestore for user ${user.id}, task ${task.id}`);
                 await firestoreService.initializeUserTaskProgress(user.id, task);
               }
             }
@@ -210,7 +218,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSelectedTask(task);
             setSelectedSubtask(subtask);
             setSelectedStep(step);
-            console.log(`Resumed user to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
+            // console.log(`Resumed user to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
             return;
           }
         }
@@ -250,7 +258,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (subtask && step) {
             setSelectedSubtask(subtask);
             setSelectedStep(step);
-            console.log(`Resumed to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
+            // console.log(`Resumed to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
             return; // Successfully resumed, don't fall back to first step
           }
         }
@@ -282,7 +290,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateStepCompletion = async (stepId: string, isCompleted: boolean, studentResponse?: string) => {
-    console.log(`🔄 updateStepCompletion called: stepId=${stepId}, isCompleted=${isCompleted}`);
+    // console.log(`🔄 updateStepCompletion called: stepId=${stepId}, isCompleted=${isCompleted}`);
     
     // Update the selected step directly
     if (selectedStep && selectedStep.id === stepId) {
@@ -335,7 +343,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             : task
         );
-        console.log(`✅ Updated tasks array for step ${stepId}:`, updatedTasks.find(t => t.id === selectedTask.id)?.subtasks.find(s => s.id === selectedSubtask?.id)?.steps.find(st => st.id === stepId)?.isCompleted);
+        // console.log(`✅ Updated tasks array for step ${stepId}:`, updatedTasks.find(t => t.id === selectedTask.id)?.subtasks.find(s => s.id === selectedSubtask?.id)?.steps.find(st => st.id === stepId)?.isCompleted);
         return updatedTasks;
       });
     }
@@ -542,7 +550,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!targetStep) return 'locked';
 
-    console.log(`🔍 getStepStatus for ${stepId}: found step with isCompleted=${targetStep.isCompleted}, task=${selectedTask?.id}, subtask=${targetStep ? Object.values(selectedTask?.subtasks || []).find(s => s.steps.find(st => st.id === stepId))?.id : 'not found'}`);
+    // console.log(`🔍 getStepStatus for ${stepId}: found step with isCompleted=${targetStep.isCompleted}, task=${selectedTask?.id}, subtask=${targetStep ? Object.values(selectedTask?.subtasks || []).find(s => s.steps.find(st => st.id === stepId))?.id : 'not found'}`);
 
     if (targetStep.isCompleted) return 'completed';
     
@@ -566,10 +574,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         targetSubtaskId,
         targetStepId
       );
-      console.log(`Updated current position to: ${targetSubtaskId} -> ${targetStepId}`);
+      // console.log(`Updated current position to: ${targetSubtaskId} -> ${targetStepId}`);
     } catch (error) {
       console.warn('Failed to update current position in Firestore:', error);
     }
+  };
+
+  // Get current step's agent details
+  const getCurrentAgent = (): TeamMember | null => {
+    if (!selectedStep || !teamMembers.length) return null;
+    
+    return teamMembers.find(member => member.role === selectedStep.primaryAgent) || null;
   };
 
   return (
@@ -588,6 +603,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isStepAccessible,
         getStepStatus,
         getFurthestProgress,
+        getCurrentAgent,
         isLoading,
         error,
       }}
