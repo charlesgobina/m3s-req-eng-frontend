@@ -17,7 +17,7 @@ import {
   RefreshCw,
   HelpCircle
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { 
   lecturerService, 
   DashboardStats, 
@@ -28,7 +28,7 @@ import {
 } from '../../services/lecturerService';
 
 const LecturerDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthStore();
   
   // State for real data
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
