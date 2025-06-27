@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, AlertCircle } from 'lucide-react';
-import { useChat } from '../../context/ChatContext';
+import { useChatStore } from '../../stores/chatStore';
 
 const ValidationResult: React.FC = () => {
-  const { validationResult } = useChat();
+  const { validationResult } = useChatStore();
   
   if (!validationResult) return null;
   

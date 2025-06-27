@@ -2,7 +2,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import { ChatProvider } from './context/ChatContext';
 import { ProjectContextProvider } from './context/ProjectContext';
 import MainLayout from './components/layout/MainLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -128,9 +127,7 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <ProjectContextProvider>
-              <ChatProvider>
-                <MainLayout />
-              </ChatProvider>
+              <MainLayout />
             </ProjectContextProvider>
           </ProtectedRoute>
         } 

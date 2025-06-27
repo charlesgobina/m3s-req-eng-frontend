@@ -1,23 +1,30 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, Send, User, Sparkles, MessageCircle, Zap } from 'lucide-react';
-import { useChat } from '../../context/ChatContext';
+import { useChatStore } from '../../stores/chatStore';
 import { useTaskStore } from '../../stores/taskStore';
 import MessageBubble from './MessageBubble';
 
 const ChatInterface: React.FC = () => {
   const { 
-    messages, 
+    getCurrentStepMessages, 
     inputMessage, 
     setInputMessage, 
     isStreaming, 
     sendMessage, 
     handleKeyPress,
-    messagesEndRef
-  } = useChat();
+    isEditingResponse
+  } = useChatStore();
   
   const { selectedTask, selectedSubtask, selectedStep, getCurrentAgent, teamMembers } = useTaskStore();
   const currentAgent = getCurrentAgent();
+  const messages = getCurrentStepMessages();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
 
   // Generate agent avatar/initials
@@ -228,7 +235,7 @@ const ChatInterface: React.FC = () => {
                 placeholder={`Message ${currentAgent?.name || 'assistant'}...`}
                 className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all duration-200 bg-white text-sm max-h-32 min-h-[48px]"
                 rows={1}
-                disabled={isStreaming || selectedStep?.isCompleted}
+                disabled={isStreaming || (selectedStep?.isCompleted && !isEditingResponse)}
                 style={{ 
                   height: 'auto',
                   minHeight: '48px'
@@ -240,17 +247,28 @@ const ChatInterface: React.FC = () => {
                 }}
               />
               
-              {selectedStep?.isCompleted && (
+              {selectedStep?.isCompleted && !isEditingResponse && (
                 <div className="absolute inset-0 bg-slate-100/80 rounded-2xl flex items-center justify-center">
                   <span className="text-xs text-slate-500 font-medium">Step completed</span>
                 </div>
+              )}
+              
+              {selectedStep?.isCompleted && isEditingResponse && (
+                <motion.div 
+                  className="absolute top-1 right-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-lg border border-blue-200 text-xs font-medium"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  ✏️ Edit mode
+                </motion.div>
               )}
             </div>
           </div>
           
           <motion.button
             onClick={sendMessage}
-            disabled={!inputMessage.trim() || isStreaming || selectedStep?.isCompleted}
+            disabled={!inputMessage.trim() || isStreaming || (selectedStep?.isCompleted && !isEditingResponse)}
             className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-2xl flex items-center justify-center transition-all duration-200 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
