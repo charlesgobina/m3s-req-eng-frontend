@@ -1,6 +1,6 @@
 // src/context/TaskContext.tsx - Updated with authentication and Firestore
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/apiService';
 import { firestoreService, FirestoreService } from '../services/firestoreService';
 
@@ -88,7 +88,7 @@ const TaskContext = createContext<TaskContextType>({
 export const useTask = () => useContext(TaskContext);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, User, Loader2, UserPlus, GraduationCap, Users, BookOpen } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { SignupData } from '../../types/auth';
@@ -12,7 +12,7 @@ import ConnectionStatus from './ConnectionStatus';
 
 const SignupForm: React.FC = () => {
   const navigate = useNavigate();
-  const { signup, isReqLoading } = useAuth();
+  const { signup, isReqLoading } = useAuthStore();
   const { error, errorType, isError, clearError } = useErrorHandler();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

@@ -2,7 +2,7 @@
 import React, { createContext, useState, useRef, useContext, useEffect } from 'react';
 import { useTask } from './TaskContext';
 // import { useProjectContext } from './ProjectContext';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/apiService';
 import { chatService, UIMessage as ChatUIMessage } from '../services/chatService';
 // Keep firestoreService for backwards compatibility during migration
@@ -61,7 +61,7 @@ const ChatContext = createContext<ChatContextType>({
 export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuthStore();
   const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion, getCurrentAgent } = useTask();
   // const { projectContext } = useProjectContext();
   

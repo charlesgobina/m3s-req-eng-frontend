@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, Loader2, LogIn, AlertCircle, BookOpen } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { LoginCredentials } from '../../types/auth';
@@ -14,7 +14,7 @@ import ConnectionStatus from './ConnectionStatus';
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, isLoading, isReqLoading } = useAuth();
+  const { login, isLoading, isReqLoading } = useAuthStore();
   const { error, errorType, isError, clearError } = useErrorHandler();
   const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
