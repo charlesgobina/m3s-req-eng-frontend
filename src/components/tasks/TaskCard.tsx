@@ -61,7 +61,7 @@ const SubtaskItem: React.FC<{
 };
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, index, onSelect }) => {
-  const { selectedTask, selectedSubtask, setSelectedTask, setSelectedSubtask, selectedStep, setSelectedStep } = useTask();
+  const { selectedTask, selectedSubtask, setSelectedTask, setSelectedSubtask, selectedStep, setSelectedStep, isStepAccessible } = useTask();
   const [isExpanded, setIsExpanded] = useState(selectedTask?.id === task.id);
   const isSelected = selectedTask?.id === task.id;
   
@@ -78,13 +78,32 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onSelect }) => {
   };
 
   const handleSubtaskClick = (subtask: Subtask) => {
+    // Check if the first step of the subtask is accessible
+    if (subtask.steps && subtask.steps.length > 0) {
+      const firstStep = subtask.steps[0];
+      if (!isStepAccessible(firstStep.id)) {
+        return; // Don't allow subtask selection if first step is locked
+      }
+    }
+    
     if (selectedTask?.id !== task.id) {
       setSelectedTask(task);
     }
     setSelectedSubtask(subtask);
-    // Set the first step as selected if available
+    
+    // Find the furthest accessible step in this subtask
     if (subtask.steps && subtask.steps.length > 0) {
-      setSelectedStep(subtask.steps[0]);
+      let targetStep = subtask.steps[0]; // Default to first step
+      
+      // Find the furthest accessible step
+      for (let i = subtask.steps.length - 1; i >= 0; i--) {
+        if (isStepAccessible(subtask.steps[i].id)) {
+          targetStep = subtask.steps[i];
+          break;
+        }
+      }
+      
+      setSelectedStep(targetStep);
     }
   };
   

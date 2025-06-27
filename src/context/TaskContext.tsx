@@ -434,19 +434,36 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isStepAccessible = (stepId: string): boolean => {
     if (!selectedTask) return false;
 
-    // Find the step
+    // Find the step from the main tasks array (same source that gets updated)
     let targetStep: Steps | null = null;
     let targetSubtask: Subtask | null = null;
+    const currentTask = tasks.find(task => task.id === selectedTask.id);
     
-    for (const subtask of selectedTask.subtasks) {
-      for (const step of subtask.steps) {
-        if (step.id === stepId) {
-          targetStep = step;
-          targetSubtask = subtask;
-          break;
+    if (currentTask) {
+      for (const subtask of currentTask.subtasks) {
+        for (const step of subtask.steps) {
+          if (step.id === stepId) {
+            targetStep = step;
+            targetSubtask = subtask;
+            break;
+          }
         }
+        if (targetStep) break;
       }
-      if (targetStep) break;
+    }
+    
+    // Fallback to selectedTask if not found in main tasks array
+    if (!targetStep) {
+      for (const subtask of selectedTask.subtasks) {
+        for (const step of subtask.steps) {
+          if (step.id === stepId) {
+            targetStep = step;
+            targetSubtask = subtask;
+            break;
+          }
+        }
+        if (targetStep) break;
+      }
     }
 
     if (!targetStep || !targetSubtask) return false;
