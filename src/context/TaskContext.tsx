@@ -229,31 +229,55 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const handleSetSelectedTask = (task: Task) => {
+  const handleSetSelectedTask = async (task: Task) => {
     setSelectedTask(task);
     // Clear previous subtask and step selections when switching tasks
     setSelectedSubtask(null);
     setSelectedStep(null);
     
-    // Auto-select first subtask and step if available
+    // Try to resume user's actual progress from Firestore
+    if (user?.id) {
+      try {
+        const userProgress = await firestoreService.getUserTaskProgress(user.id, task.id);
+        
+        if (userProgress && userProgress.currentPosition.stepId) {
+          const { subtaskId, stepId } = userProgress.currentPosition;
+          
+          // Find the actual objects
+          const subtask = task.subtasks.find(s => s.id === subtaskId);
+          const step = subtask?.steps.find(s => s.id === stepId);
+          
+          if (subtask && step) {
+            setSelectedSubtask(subtask);
+            setSelectedStep(step);
+            console.log(`Resumed to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
+            return; // Successfully resumed, don't fall back to first step
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load user progress, falling back to first step:', error);
+      }
+    }
+    
+    // Fallback: Auto-select first subtask and step if no progress found
     if (task.subtasks && task.subtasks.length > 0) {
       const firstSubtask = task.subtasks[0];
       setSelectedSubtask(firstSubtask);
       if (firstSubtask.steps && firstSubtask.steps.length > 0) {
         setSelectedStep(firstSubtask.steps[0]);
+        
+        // Only update Firestore position if we're falling back to first step
+        if (user?.id) {
+          firestoreService.updateCurrentPosition(
+            user.id, 
+            task.id, 
+            firstSubtask.id, 
+            firstSubtask.steps[0].id
+          ).catch(error => {
+            console.warn('Failed to update position in Firestore:', error);
+          });
+        }
       }
-    }
-
-    // Update position in Firestore
-    if (user?.id && task.subtasks.length > 0 && task.subtasks[0].steps.length > 0) {
-      firestoreService.updateCurrentPosition(
-        user.id, 
-        task.id, 
-        task.subtasks[0].id, 
-        task.subtasks[0].steps[0].id
-      ).catch(error => {
-        console.warn('Failed to update position in Firestore:', error);
-      });
     }
   };
 
