@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, Send, User, Sparkles, MessageCircle, Zap } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
-import { useTask } from '../../context/TaskContext';
+import { useTaskStore } from '../../stores/taskStore';
 import MessageBubble from './MessageBubble';
 
 const ChatInterface: React.FC = () => {
@@ -16,7 +16,7 @@ const ChatInterface: React.FC = () => {
     messagesEndRef
   } = useChat();
   
-  const { selectedTask, selectedSubtask, selectedStep, getCurrentAgent, teamMembers } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, getCurrentAgent, teamMembers } = useTaskStore();
   const currentAgent = getCurrentAgent();
 
 

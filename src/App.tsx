@@ -2,7 +2,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import { TaskProvider } from './context/TaskContext';
 import { ChatProvider } from './context/ChatContext';
 import { ProjectContextProvider } from './context/ProjectContext';
 import MainLayout from './components/layout/MainLayout';
@@ -129,11 +128,9 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <ProjectContextProvider>
-              <TaskProvider>
-                <ChatProvider>
-                  <MainLayout />
-                </ChatProvider>
-              </TaskProvider>
+              <ChatProvider>
+                <MainLayout />
+              </ChatProvider>
             </ProjectContextProvider>
           </ProtectedRoute>
         } 

@@ -10,11 +10,11 @@ import {
   Building
 } from 'lucide-react';
 import { useProjectContext } from '../../context/ProjectContext';
-import { useTask } from '../../context/TaskContext';
+import { useTaskStore } from '../../stores/taskStore';
 
 const ProjectOverview: React.FC = () => {
   const { projectContext } = useProjectContext();
-  const { navigateToNext } = useTask();
+  const { navigateToNext } = useTaskStore();
 
   const handleGetStarted = () => {
     navigateToNext();

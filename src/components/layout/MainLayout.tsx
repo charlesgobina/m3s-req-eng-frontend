@@ -5,11 +5,11 @@ import ExerciseSubmission from '../exercise/ExerciseSubmission';
 import ProjectOverview from '../home/ProjectOverview';
 import Header from './Header';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTask } from '../../context/TaskContext';
+import { useTaskStore } from '../../stores/taskStore';
 import { Menu, X } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { selectedTask, selectedSubtask } = useTask();
+  const { selectedTask, selectedSubtask } = useTaskStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const isHomeTask = selectedTask?.name?.toLowerCase() === 'home';

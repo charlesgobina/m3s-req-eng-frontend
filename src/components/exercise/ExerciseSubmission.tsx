@@ -2,7 +2,7 @@ import React, { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Loader2, Target, ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
-import { useTask } from '../../context/TaskContext';
+import { useTaskStore } from '../../stores/taskStore';
 import ValidationResult from './ValidationResult';
 
 // Memoized components to prevent unnecessary re-renders
@@ -69,7 +69,7 @@ const StepNavigation = memo(({
   currentStepIndex: number; 
   onStepChange: (index: number) => void;
 }) => {
-  const { isStepAccessible, getStepStatus } = useTask();
+  const { isStepAccessible, getStepStatus } = useTaskStore();
   
   if (steps.length <= 1) return null;
 
@@ -157,7 +157,7 @@ const StepCard = memo(({
   validationResult: any;
   handleNextClick: () => void;
 }) => {
-  const { getStepStatus, isStepAccessible } = useTask();
+  const { getStepStatus, isStepAccessible } = useTaskStore();
   const stepStatus = getStepStatus(step.id);
   const accessible = isStepAccessible(step.id);
   const isCompleted = step.isCompleted;
@@ -318,7 +318,7 @@ const ExerciseContent = memo(() => {
     setValidationResult
   } = useChat();
   
-  const { selectedTask, selectedSubtask, selectedStep, navigateToNext, setSelectedStep, isStepAccessible, tasks } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, navigateToNext, setSelectedStep, isStepAccessible, tasks } = useTaskStore();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   // Update current step index when selectedStep changes

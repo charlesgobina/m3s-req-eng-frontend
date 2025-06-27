@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText } from 'lucide-react';
-import { useTask } from '../../context/TaskContext';
+import { useTaskStore } from '../../stores/taskStore';
 import TaskCard from './TaskCard';
 
 interface TaskListProps {
@@ -9,7 +9,7 @@ interface TaskListProps {
 }
 
 const TaskList: React.FC<TaskListProps> = ({ onTaskSelect }) => {
-  const { tasks, isLoading, error } = useTask();
+  const { tasks, isLoading, error } = useTaskStore();
 
   return (
     <motion.div 

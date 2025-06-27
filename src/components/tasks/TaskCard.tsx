@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ChevronDown, ChevronRight, User, Target } from 'lucide-react';
-import { useTask, Task, Subtask } from '../../context/TaskContext';
+import { useTaskStore, Task, Subtask } from '../../stores/taskStore';
 
 interface TaskCardProps {
   task: Task;
@@ -61,7 +61,7 @@ const SubtaskItem: React.FC<{
 };
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, index, onSelect }) => {
-  const { selectedTask, selectedSubtask, setSelectedTask, setSelectedSubtask, selectedStep, setSelectedStep, isStepAccessible } = useTask();
+  const { selectedTask, selectedSubtask, setSelectedTask, setSelectedSubtask, selectedStep, setSelectedStep, isStepAccessible } = useTaskStore();
   const [isExpanded, setIsExpanded] = useState(selectedTask?.id === task.id);
   const isSelected = selectedTask?.id === task.id;
   

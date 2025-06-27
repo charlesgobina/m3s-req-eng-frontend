@@ -1,6 +1,6 @@
 // src/context/ChatContext.tsx - Updated with hybrid chat architecture
 import React, { createContext, useState, useRef, useContext, useEffect } from 'react';
-import { useTask } from './TaskContext';
+import { useTaskStore } from '../stores/taskStore';
 // import { useProjectContext } from './ProjectContext';
 import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/apiService';
@@ -62,7 +62,7 @@ export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
-  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion, getCurrentAgent } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion, getCurrentAgent } = useTaskStore();
   // const { projectContext } = useProjectContext();
   
   // Store messages per step
