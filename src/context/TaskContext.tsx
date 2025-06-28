@@ -1,6 +1,6 @@
 // src/context/TaskContext.tsx - Updated with authentication and Firestore
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/apiService';
 import { firestoreService, FirestoreService } from '../services/firestoreService';
 
@@ -36,9 +36,15 @@ export interface Task {
 
 export interface TeamMember {
   id: string;
-  name: string;
   role: string;
-  avatar?: string;
+  name: string;
+  personality: string;
+  expertise: string[];
+  communicationStyle: string;
+  workApproach: string;
+  preferredFrameworks: string[];
+  detailedPersona: string;
+  imageUrl?: string;
 }
 
 interface TaskContextType {
@@ -55,6 +61,7 @@ interface TaskContextType {
   isStepAccessible: (stepId: string) => boolean;
   getStepStatus: (stepId: string) => 'completed' | 'current' | 'locked';
   getFurthestProgress: () => { subtaskId: string | null; stepId: string | null };
+  getCurrentAgent: () => TeamMember | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -73,6 +80,7 @@ const TaskContext = createContext<TaskContextType>({
   isStepAccessible: () => false,
   getStepStatus: () => 'locked',
   getFurthestProgress: () => ({ subtaskId: null, stepId: null }),
+  getCurrentAgent: () => null,
   isLoading: false,
   error: null,
 });
@@ -80,7 +88,7 @@ const TaskContext = createContext<TaskContextType>({
 export const useTask = () => useContext(TaskContext);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -130,12 +138,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
 
       // Now try to load user progress from Firestore and merge
-      console.log('🔍 Current user:', user);
+      // console.log('🔍 Current user:', user);
       const tasksWithProgress = await Promise.all(
         safeTasks.map(async (task: Task) => {
           try {
             if (user?.id) {
-              console.log(`🔍 Loading progress for user ${user.id}, task ${task.id}`);
+              // console.log(`🔍 Loading progress for user ${user.id}, task ${task.id}`);
               const userProgress = await firestoreService.getUserTaskProgress(user.id, task.id);
               
               if (userProgress) {
@@ -143,7 +151,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return FirestoreService.convertToTaskFormat(userProgress);
               } else {
                 // Initialize in Firestore for first time
-                console.log(`🔥 Initializing Firestore for user ${user.id}, task ${task.id}`);
+                // console.log(`🔥 Initializing Firestore for user ${user.id}, task ${task.id}`);
                 await firestoreService.initializeUserTaskProgress(user.id, task);
               }
             }
@@ -210,7 +218,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSelectedTask(task);
             setSelectedSubtask(subtask);
             setSelectedStep(step);
-            console.log(`Resumed user to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
+            // console.log(`Resumed user to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
             return;
           }
         }
@@ -229,36 +237,60 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const handleSetSelectedTask = (task: Task) => {
+  const handleSetSelectedTask = async (task: Task) => {
     setSelectedTask(task);
     // Clear previous subtask and step selections when switching tasks
     setSelectedSubtask(null);
     setSelectedStep(null);
     
-    // Auto-select first subtask and step if available
+    // Try to resume user's actual progress from Firestore
+    if (user?.id) {
+      try {
+        const userProgress = await firestoreService.getUserTaskProgress(user.id, task.id);
+        
+        if (userProgress && userProgress.currentPosition.stepId) {
+          const { subtaskId, stepId } = userProgress.currentPosition;
+          
+          // Find the actual objects
+          const subtask = task.subtasks.find(s => s.id === subtaskId);
+          const step = subtask?.steps.find(s => s.id === stepId);
+          
+          if (subtask && step) {
+            setSelectedSubtask(subtask);
+            setSelectedStep(step);
+            // console.log(`Resumed to: ${task.name} -> ${subtask.name} -> ${step.objective}`);
+            return; // Successfully resumed, don't fall back to first step
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load user progress, falling back to first step:', error);
+      }
+    }
+    
+    // Fallback: Auto-select first subtask and step if no progress found
     if (task.subtasks && task.subtasks.length > 0) {
       const firstSubtask = task.subtasks[0];
       setSelectedSubtask(firstSubtask);
       if (firstSubtask.steps && firstSubtask.steps.length > 0) {
         setSelectedStep(firstSubtask.steps[0]);
+        
+        // Only update Firestore position if we're falling back to first step
+        if (user?.id) {
+          firestoreService.updateCurrentPosition(
+            user.id, 
+            task.id, 
+            firstSubtask.id, 
+            firstSubtask.steps[0].id
+          ).catch(error => {
+            console.warn('Failed to update position in Firestore:', error);
+          });
+        }
       }
-    }
-
-    // Update position in Firestore
-    if (user?.id && task.subtasks.length > 0 && task.subtasks[0].steps.length > 0) {
-      firestoreService.updateCurrentPosition(
-        user.id, 
-        task.id, 
-        task.subtasks[0].id, 
-        task.subtasks[0].steps[0].id
-      ).catch(error => {
-        console.warn('Failed to update position in Firestore:', error);
-      });
     }
   };
 
   const updateStepCompletion = async (stepId: string, isCompleted: boolean, studentResponse?: string) => {
-    console.log(`🔄 updateStepCompletion called: stepId=${stepId}, isCompleted=${isCompleted}`);
+    // console.log(`🔄 updateStepCompletion called: stepId=${stepId}, isCompleted=${isCompleted}`);
     
     // Update the selected step directly
     if (selectedStep && selectedStep.id === stepId) {
@@ -311,7 +343,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             : task
         );
-        console.log(`✅ Updated tasks array for step ${stepId}:`, updatedTasks.find(t => t.id === selectedTask.id)?.subtasks.find(s => s.id === selectedSubtask?.id)?.steps.find(st => st.id === stepId)?.isCompleted);
+        // console.log(`✅ Updated tasks array for step ${stepId}:`, updatedTasks.find(t => t.id === selectedTask.id)?.subtasks.find(s => s.id === selectedSubtask?.id)?.steps.find(st => st.id === stepId)?.isCompleted);
         return updatedTasks;
       });
     }
@@ -434,19 +466,36 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isStepAccessible = (stepId: string): boolean => {
     if (!selectedTask) return false;
 
-    // Find the step
+    // Find the step from the main tasks array (same source that gets updated)
     let targetStep: Steps | null = null;
     let targetSubtask: Subtask | null = null;
+    const currentTask = tasks.find(task => task.id === selectedTask.id);
     
-    for (const subtask of selectedTask.subtasks) {
-      for (const step of subtask.steps) {
-        if (step.id === stepId) {
-          targetStep = step;
-          targetSubtask = subtask;
-          break;
+    if (currentTask) {
+      for (const subtask of currentTask.subtasks) {
+        for (const step of subtask.steps) {
+          if (step.id === stepId) {
+            targetStep = step;
+            targetSubtask = subtask;
+            break;
+          }
         }
+        if (targetStep) break;
       }
-      if (targetStep) break;
+    }
+    
+    // Fallback to selectedTask if not found in main tasks array
+    if (!targetStep) {
+      for (const subtask of selectedTask.subtasks) {
+        for (const step of subtask.steps) {
+          if (step.id === stepId) {
+            targetStep = step;
+            targetSubtask = subtask;
+            break;
+          }
+        }
+        if (targetStep) break;
+      }
     }
 
     if (!targetStep || !targetSubtask) return false;
@@ -501,7 +550,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!targetStep) return 'locked';
 
-    console.log(`🔍 getStepStatus for ${stepId}: found step with isCompleted=${targetStep.isCompleted}, task=${selectedTask?.id}, subtask=${targetStep ? Object.values(selectedTask?.subtasks || []).find(s => s.steps.find(st => st.id === stepId))?.id : 'not found'}`);
+    // console.log(`🔍 getStepStatus for ${stepId}: found step with isCompleted=${targetStep.isCompleted}, task=${selectedTask?.id}, subtask=${targetStep ? Object.values(selectedTask?.subtasks || []).find(s => s.steps.find(st => st.id === stepId))?.id : 'not found'}`);
 
     if (targetStep.isCompleted) return 'completed';
     
@@ -525,10 +574,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         targetSubtaskId,
         targetStepId
       );
-      console.log(`Updated current position to: ${targetSubtaskId} -> ${targetStepId}`);
+      // console.log(`Updated current position to: ${targetSubtaskId} -> ${targetStepId}`);
     } catch (error) {
       console.warn('Failed to update current position in Firestore:', error);
     }
+  };
+
+  // Get current step's agent details
+  const getCurrentAgent = (): TeamMember | null => {
+    if (!selectedStep || !teamMembers.length) return null;
+    
+    return teamMembers.find(member => member.role === selectedStep.primaryAgent) || null;
   };
 
   return (
@@ -547,6 +603,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isStepAccessible,
         getStepStatus,
         getFurthestProgress,
+        getCurrentAgent,
         isLoading,
         error,
       }}

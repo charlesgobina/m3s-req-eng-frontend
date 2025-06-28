@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 
 interface RoleAwareProps {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ const RoleAware: React.FC<RoleAwareProps> = ({
   fallback,
   className = ''
 }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuthStore();
 
   // If no roles specified, allow all authenticated users
   if (allowedRoles.length === 0) {

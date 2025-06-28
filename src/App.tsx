@@ -1,9 +1,7 @@
 // src/App.tsx - Enhanced with React Router for better auth navigation
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { TaskProvider } from './context/TaskContext';
-import { ChatProvider } from './context/ChatContext';
+import { useAuthStore } from './stores/authStore';
 import { ProjectContextProvider } from './context/ProjectContext';
 import MainLayout from './components/layout/MainLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -37,7 +35,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   children, 
   allowedRoles 
 }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -62,7 +60,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
 // Public Route Wrapper (redirects if already authenticated)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -82,7 +80,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Role-based redirect component
 const RoleBasedRedirect: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   
   if (user?.role === 'lecturer') {
     return <Navigate to="/lecturer/dashboard" replace />;
@@ -129,11 +127,7 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <ProjectContextProvider>
-              <TaskProvider>
-                <ChatProvider>
-                  <MainLayout />
-                </ChatProvider>
-              </TaskProvider>
+              <MainLayout />
             </ProjectContextProvider>
           </ProtectedRoute>
         } 
@@ -166,11 +160,9 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </AuthProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }

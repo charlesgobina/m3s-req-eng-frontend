@@ -217,18 +217,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiService.signup(data);
 
       if (response.success && response.data) {
-        const { customToken, user } = response.data;
-        
-        // Store token and user data
-        localStorage.setItem('authToken', customToken);
-        localStorage.setItem('user', JSON.stringify(user));
-
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-          isReqLoading: false,
-        });
+        // Don't store token or authenticate user immediately
+        // User will need to login after successful signup
+        setAuthState(prev => ({ ...prev, isLoading: false }));
 
         return { success: true };
       } else {

@@ -1,8 +1,8 @@
 // src/context/ChatContext.tsx - Updated with hybrid chat architecture
 import React, { createContext, useState, useRef, useContext, useEffect } from 'react';
-import { useTask } from './TaskContext';
+import { useTaskStore } from '../stores/taskStore';
 // import { useProjectContext } from './ProjectContext';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/apiService';
 import { chatService, UIMessage as ChatUIMessage } from '../services/chatService';
 // Keep firestoreService for backwards compatibility during migration
@@ -61,8 +61,8 @@ const ChatContext = createContext<ChatContextType>({
 export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
-  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion } = useTask();
+  const { isAuthenticated, user } = useAuthStore();
+  const { selectedTask, selectedSubtask, selectedStep, teamMembers, updateStepCompletion, getCurrentAgent } = useTaskStore();
   // const { projectContext } = useProjectContext();
   
   // Store messages per step
@@ -213,7 +213,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Save user message to ChatService
     if (user?.id && selectedSubtask) {
       try {
-        console.log('💬 Saving user message to ChatService:', userMessage.content.substring(0, 50) + '...');
+        // console.log('💬 Saving user message to ChatService:', userMessage.content.substring(0, 50) + '...');
         await chatService.addChatMessage(
           user.id,
           selectedTask.id,
@@ -226,7 +226,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Don't include agentRole for user messages (it's always undefined)
           }
         );
-        console.log('✅ User message saved successfully to ChatService');
+        // console.log('✅ User message saved successfully to ChatService');
       } catch (error) {
         console.error('❌ Failed to save user message to ChatService:', error);
         // Note: Message still appears in UI due to optimistic update above
@@ -241,6 +241,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         eventSourceRef.current.close();
       }
 
+      // Get current agent info
+      const currentAgent = getCurrentAgent();
+      
       // Create the request payload
       const requestPayload = {
         message: inputMessage.trim(),
@@ -248,6 +251,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subtask: selectedSubtask,
         step: selectedStep,
         sessionId: sessionId,
+        agentRole: currentAgent?.role,
         // projectContext: projectContext,
       };
 
@@ -271,7 +275,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!response.ok) {
         // Handle auth errors like apiService does
         if (response.status === 401) {
-          console.log('401 Unauthorized - clearing auth data');
+          // console.log('401 Unauthorized - clearing auth data');
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');
           throw new Error('Authentication failed. Please log in again.');
@@ -342,7 +346,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Save final assistant message to ChatService
       if (assistantMessage && user?.id && selectedSubtask) {
         try {
-          console.log('🤖 Saving assistant message to ChatService:', assistantMessage.substring(0, 50) + '...');
+          // console.log('🤖 Saving assistant message to ChatService:', assistantMessage.substring(0, 50) + '...');
           const assistantMessageData: any = {
             id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: 'assistant',
@@ -361,7 +365,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             stepId,
             assistantMessageData
           );
-          console.log('✅ Assistant message saved successfully to ChatService');
+          // console.log('✅ Assistant message saved successfully to ChatService');
         } catch (error) {
           console.error('❌ Failed to save assistant message to ChatService:', error);
           // Note: Message still appears in UI due to real-time streaming update above
@@ -390,15 +394,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const validateSubmission = async () => {
-    console.log('🚀 validateSubmission called');
+    // console.log('🚀 validateSubmission called');
     
     if (!submission.trim() || !selectedTask || !selectedStep || !isAuthenticated) {
-      console.log('❌ Validation blocked - missing requirements:', {
-        hasSubmission: !!submission.trim(),
-        hasSelectedTask: !!selectedTask,
-        hasSelectedStep: !!selectedStep,
-        isAuthenticated
-      });
+      // console.log('❌ Validation blocked - missing requirements:', {
+      //   hasSubmission: !!submission.trim(),
+      //   hasSelectedTask: !!selectedTask,
+      //   hasSelectedStep: !!selectedStep,
+      //   isAuthenticated
+      // });
       return;
     }
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2, Shield, AlertTriangle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   roles = [], 
   fallback 
 }) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
 
   // Show loading spinner while checking authentication

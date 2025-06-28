@@ -1,8 +1,8 @@
 import React, { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Loader2, Target, ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Play } from 'lucide-react';
-import { useChat } from '../../context/ChatContext';
-import { useTask } from '../../context/TaskContext';
+import { CheckCircle, Loader2, Target, ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Play, Edit3, X, Save } from 'lucide-react';
+import { useChatStore } from '../../stores/chatStore';
+import { useTaskStore } from '../../stores/taskStore';
 import ValidationResult from './ValidationResult';
 
 // Memoized components to prevent unnecessary re-renders
@@ -69,7 +69,7 @@ const StepNavigation = memo(({
   currentStepIndex: number; 
   onStepChange: (index: number) => void;
 }) => {
-  const { isStepAccessible, getStepStatus } = useTask();
+  const { isStepAccessible, getStepStatus } = useTaskStore();
   
   if (steps.length <= 1) return null;
 
@@ -157,11 +157,43 @@ const StepCard = memo(({
   validationResult: any;
   handleNextClick: () => void;
 }) => {
-  const { getStepStatus, isStepAccessible } = useTask();
+  const { getStepStatus, isStepAccessible } = useTaskStore();
+  const { isEditingResponse, setEditingResponse } = useChatStore();
+  const [editedResponse, setEditedResponse] = useState('');
+  
+  // Use chat store's edit state
+  const isEditing = isEditingResponse;
+  
   const stepStatus = getStepStatus(step.id);
   const accessible = isStepAccessible(step.id);
   const isCompleted = step.isCompleted;
   const hasValidResponse = step.studentResponse && step.studentResponse.trim();
+
+  // Initialize edit response with current submission
+  React.useEffect(() => {
+    if (isCompleted && hasValidResponse && !editedResponse) {
+      setEditedResponse(step.studentResponse);
+    }
+  }, [isCompleted, hasValidResponse, step.studentResponse, editedResponse]);
+
+  const handleStartEdit = () => {
+    setEditingResponse(true);
+    setEditedResponse(step.studentResponse || '');
+    setSubmission(step.studentResponse || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingResponse(false);
+    setEditedResponse('');
+    setSubmission('');
+  };
+
+  const handleSaveEdit = () => {
+    setSubmission(editedResponse);
+    setEditingResponse(false);
+    // Trigger validation with the new response
+    validateSubmission();
+  };
 
   return (
     <motion.div
@@ -231,12 +263,51 @@ const StepCard = memo(({
           </div>
 
           {/* Previous Response (if completed) */}
-          {isCompleted && hasValidResponse && (
+          {isCompleted && hasValidResponse && !isEditing && (
             <div className="mb-4">
-              <h4 className="font-medium text-green-700 mb-2 text-sm">✓ Your Successful Response</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-green-700 text-sm">✓ Your Successful Response</h4>
+                <motion.button
+                  onClick={handleStartEdit}
+                  className="flex items-center px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Edit3 size={12} className="mr-1" />
+                  Edit Response
+                </motion.button>
+              </div>
               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                 <p className="text-xs text-slate-700 whitespace-pre-wrap">{step.studentResponse}</p>
               </div>
+            </div>
+          )}
+
+          {/* Edit Mode Response Area */}
+          {isCompleted && isEditing && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-blue-700 text-sm">✏️ Edit Your Response</h4>
+                <motion.button
+                  onClick={handleCancelEdit}
+                  className="flex items-center px-2 py-1 text-xs text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <X size={12} className="mr-1" />
+                  Cancel
+                </motion.button>
+              </div>
+              <textarea
+                value={editedResponse}
+                onChange={(e) => setEditedResponse(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, true)}
+                placeholder="Edit your response to improve your score..."
+                className="w-full min-h-[120px] p-3 border border-blue-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+              />
+              <p className="text-xs text-blue-600 mt-1">
+                💡 Tip: You can improve your response to get a higher validation score!
+              </p>
             </div>
           )}
 
@@ -264,7 +335,7 @@ const StepCard = memo(({
 
       {/* Action Buttons */}
       <div className="p-4 border-t border-slate-200 bg-slate-50 flex-shrink-0">
-        {!isCompleted ? (
+        {!isCompleted && !isEditing ? (
           <motion.button
             onClick={validateSubmission}
             disabled={!submission.trim() || isValidating || stepStatus === 'locked'}
@@ -288,6 +359,37 @@ const StepCard = memo(({
               </>
             )}
           </motion.button>
+        ) : isEditing ? (
+          <div className="flex space-x-2">
+            <motion.button
+              onClick={handleCancelEdit}
+              className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-200 flex items-center justify-center font-medium text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <X size={16} className="mr-2" />
+              Cancel
+            </motion.button>
+            <motion.button
+              onClick={handleSaveEdit}
+              disabled={!editedResponse.trim() || isValidating}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 size={16} className="animate-spin mr-2" />
+                  Validating...
+                </>
+              ) : (
+                <>
+                  <Save size={16} className="mr-2" />
+                  Save & Validate
+                </>
+              )}
+            </motion.button>
+          </div>
         ) : (
           <motion.button
             onClick={handleNextClick}
@@ -316,9 +418,9 @@ const ExerciseContent = memo(() => {
     handleKeyPress,
     validationResult,
     setValidationResult
-  } = useChat();
+  } = useChatStore();
   
-  const { selectedTask, selectedSubtask, selectedStep, navigateToNext, setSelectedStep, isStepAccessible, tasks } = useTask();
+  const { selectedTask, selectedSubtask, selectedStep, navigateToNext, setSelectedStep, isStepAccessible, tasks } = useTaskStore();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   // Update current step index when selectedStep changes
